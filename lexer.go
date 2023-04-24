@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"strings"
 	"unicode"
@@ -88,7 +87,6 @@ func (lexer *Lexer) scanAll() []Token {
     var tokens []Token
     for true {
         token, err := lexer.scan()
-        fmt.Println(token)
         if err != nil {
             break
         }
@@ -99,7 +97,8 @@ func (lexer *Lexer) scanAll() []Token {
 
 func (lexer *Lexer) peekNext() (bool, error) {
     peek, _, err := lexer.reader.ReadRune()
-    if err != nil { 
+    if err != nil {
+        lexer.peek = ' '
         return true, err
     }
     lexer.peek = peek
