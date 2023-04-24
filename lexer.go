@@ -28,6 +28,27 @@ type Lexer struct {
     reader io.RuneReader
 }
 
+func newLexer(reader io.RuneReader) Lexer {
+    lexer := Lexer { 0, ' ', make(map[string]Token), reader }
+    lexer.reserve(Token { int(TrueTag), 1, "true" })
+    lexer.reserve(Token { int(FalseTag), 0, "false" })
+    return lexer
+}
+
+func (lexer *Lexer) reserve(token Token) {
+    lexer.words[token.lexeme] = token
+}
+
+func (lexer *Lexer) peekNext() (bool, error) {
+    peek, _, err := lexer.reader.ReadRune()
+    if err != nil {
+        lexer.peek = ' '
+        return true, err
+    }
+    lexer.peek = peek
+    return false, nil
+}
+
 func (lexer *Lexer) scan() (*Token, error) {
     var err error = nil
     stop := false
@@ -93,25 +114,4 @@ func (lexer *Lexer) scanAll() []Token {
         tokens = append(tokens, *token)
     }
     return tokens
-}
-
-func (lexer *Lexer) peekNext() (bool, error) {
-    peek, _, err := lexer.reader.ReadRune()
-    if err != nil {
-        lexer.peek = ' '
-        return true, err
-    }
-    lexer.peek = peek
-    return false, nil
-}
-
-func (lexer *Lexer) reserve(token Token) {
-    lexer.words[token.lexeme] = token
-}
-
-func newLexer(reader io.RuneReader) Lexer {
-    lexer := Lexer { 0, ' ', make(map[string]Token), reader }
-    lexer.reserve(Token { int(TrueTag), 1, "true" })
-    lexer.reserve(Token { int(FalseTag), 0, "false" })
-    return lexer
 }
