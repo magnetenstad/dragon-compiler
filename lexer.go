@@ -34,7 +34,11 @@ func (lexer *Lexer) scan() (*Token, error) {
     stop := false
     for !stop {
         stop, err = lexer.peekNext()
-        if lexer.peek == ' ' || lexer.peek == '\t' { continue }
+        if lexer.peek == ' ' || 
+                lexer.peek == '\t' || 
+                lexer.peek == '\r' { 
+            continue 
+        }
         if lexer.peek == '\n' { 
             lexer.line += 1
             continue
