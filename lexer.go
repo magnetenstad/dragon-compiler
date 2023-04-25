@@ -7,7 +7,7 @@ import (
 )
 
 type Token struct {
-	tag    int
+	tag    Tag
 	value  int
 	lexeme string
 }
@@ -15,12 +15,15 @@ type Token struct {
 type Tag int
 
 const (
-	Zero   Tag = 0
-	NumTag Tag = iota + 256
-	IdTag
-	TrueTag
-	FalseTag
-	StringTag
+	TagZero Tag = 0
+	TagNum  Tag = iota + 256
+	TagId
+	TagTrue
+	TagFalse
+	TagString
+	TagExpr
+	TagIf
+	TagFor
 )
 
 type Lexer struct {
@@ -31,9 +34,17 @@ type Lexer struct {
 }
 
 func newLexer(reader io.RuneReader) Lexer {
-	lexer := Lexer{0, ' ', make(map[string]Token), reader}
-	lexer.reserve(Token{int(TrueTag), 1, "true"})
-	lexer.reserve(Token{int(FalseTag), 0, "false"})
+	lexer := Lexer{
+		line:   0,
+		peek:   ' ',
+		words:  make(map[string]Token),
+		reader: reader,
+	}
+	lexer.reserve(Token{TagTrue, 1, "true"})
+	lexer.reserve(Token{TagFalse, 0, "false"})
+	lexer.reserve(Token{TagExpr, 0, "expr"}) // TODO: Remove this
+	lexer.reserve(Token{TagIf, 0, "if"})
+	lexer.reserve(Token{TagFor, 0, "for"})
 	return lexer
 }
 
@@ -56,6 +67,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 	for ; err == nil; err = lexer.peekNext() {
 		if lexer.peek == ' ' ||
 			lexer.peek == '\t' ||
+			lexer.peek == '\n' ||
 			lexer.peek == '\r' {
 			continue
 		}
@@ -80,7 +92,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 
 		lexeme := sb.String()
 		token := Token{
-			tag:    int(StringTag),
+			tag:    TagString,
 			lexeme: lexeme,
 		}
 		return &token, nil
@@ -95,7 +107,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 		}
 
 		token := Token{
-			tag:   int(NumTag),
+			tag:   TagNum,
 			value: value,
 		}
 		return &token, nil
@@ -110,22 +122,22 @@ func (lexer *Lexer) scan() (*Token, error) {
 		}
 
 		lexeme := sb.String()
-		word := lexer.words[lexeme]
+		word, ok := lexer.words[lexeme]
 
-		if word.tag != 0 {
+		if ok {
 			return &word, nil
 		}
 		token := Token{
-			tag:    int(IdTag),
-			lexeme: string(lexeme),
+			tag:    TagId,
+			lexeme: lexeme,
 		}
-		lexer.words[lexeme] = token
+		lexer.reserve(token)
 
 		return &token, nil
 	}
 
 	token := Token{
-		tag:    int(lexer.peek),
+		tag:    Tag(lexer.peek),
 		lexeme: string(lexer.peek),
 	}
 	lexer.peek = ' '
