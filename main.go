@@ -19,7 +19,7 @@ func main() {
 	fmt.Println()
 	fmt.Println(tokens)
 	fmt.Println()
-	fmt.Println(lexer.words)
+	fmt.Println(lexer.lexemes)
 	fmt.Println()
 
 	parser := newParser(tokens)

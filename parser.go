@@ -27,12 +27,10 @@ func (parser *Parser) match(sType SymbolType) {
 		parser.next()
 	} else {
 		panic(fmt.Sprintf(
-			"match: syntax error at index %d, expected %d (%c), found %d (%c)",
-			parser.index,
-			sType,
+			"match: syntax error at line %d, expected %c, found %s",
+			parser.lookahead.position.line,
 			rune(sType),
-			parser.lookahead.sType,
-			rune(parser.lookahead.sType)))
+			parser.lookahead.lexeme))
 	}
 }
 
@@ -41,8 +39,8 @@ func (parser *Parser) matchLexeme(lexeme string) {
 		parser.next()
 	} else {
 		panic(fmt.Sprintf(
-			"match: syntax error at index %d, expected %s, found %s",
-			parser.index,
+			"match: syntax error at line %d, expected %s, found %s",
+			parser.lookahead.position.line,
 			lexeme,
 			parser.lookahead.lexeme))
 	}
@@ -107,7 +105,9 @@ func (parser *Parser) matchStatement() {
 
 	default:
 		panic(fmt.Sprintf(
-			"matchStatement: syntax error, %d", parser.lookahead.sType))
+			"matchStatement: syntax error at line %d, found %s",
+			parser.lookahead.position.line,
+			parser.lookahead.lexeme))
 	}
 }
 

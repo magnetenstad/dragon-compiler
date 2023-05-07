@@ -6,32 +6,37 @@ import (
 	"unicode"
 )
 
+type Position struct {
+	line int
+}
+
 type Token struct {
-	sType  SymbolType
-	value  int
-	lexeme string
+	sType    SymbolType
+	value    int
+	lexeme   string
+	position Position
 }
 
 type Lexer struct {
-	line   int
-	peek   rune
-	words  map[string]Token
-	reader io.RuneReader
+	line    int
+	peek    rune
+	lexemes map[string]SymbolType
+	reader  io.RuneReader
 }
 
 func newLexer(reader io.RuneReader) Lexer {
 	lexer := Lexer{
-		line:   0,
-		peek:   ' ',
-		words:  make(map[string]Token),
-		reader: reader,
+		line:    0,
+		peek:    ' ',
+		lexemes: make(map[string]SymbolType),
+		reader:  reader,
 	}
 	lexer.reserve(Token{sType: sTypePrint, lexeme: "print"})
 	return lexer
 }
 
 func (lexer *Lexer) reserve(token Token) {
-	lexer.words[token.lexeme] = token
+	lexer.lexemes[token.lexeme] = token.sType
 }
 
 func (lexer *Lexer) peekNext() error {
@@ -47,9 +52,12 @@ func (lexer *Lexer) peekNext() error {
 func (lexer *Lexer) scan() (*Token, error) {
 	var err error = nil
 	for ; err == nil; err = lexer.peekNext() {
+		if lexer.peek == '\n' {
+			lexer.line += 1
+			continue
+		}
 		if lexer.peek == ' ' ||
 			lexer.peek == '\t' ||
-			lexer.peek == '\n' ||
 			lexer.peek == '\r' {
 			continue
 		}
@@ -63,6 +71,9 @@ func (lexer *Lexer) scan() (*Token, error) {
 	token := Token{
 		sType:  SymbolType(lexer.peek),
 		lexeme: string(lexer.peek),
+		position: Position{
+			line: lexer.line,
+		},
 	}
 
 	if lexer.peek == '"' {
@@ -106,21 +117,20 @@ func (lexer *Lexer) scan() (*Token, error) {
 		}
 
 		lexeme := sb.String()
-		word, ok := lexer.words[lexeme]
+		sType, exists := lexer.lexemes[lexeme]
+		if !exists {
+			sType = sTypeIdentifier
+		}
 
-		if ok {
-			return &word, nil
-		}
-		token := Token{
-			sType:  sTypeIdentifier,
-			lexeme: lexeme,
-		}
+		token.sType = sType
+		token.lexeme = lexeme
 		lexer.reserve(token)
 
 		return &token, nil
 	}
 
 	if isOperator(lexer.peek) {
+		// Copy paste of above
 		var sb strings.Builder
 
 		for isOperator(lexer.peek) {
@@ -129,15 +139,13 @@ func (lexer *Lexer) scan() (*Token, error) {
 		}
 
 		lexeme := sb.String()
-		word, ok := lexer.words[lexeme]
+		sType, exists := lexer.lexemes[lexeme]
+		if !exists {
+			sType = sTypeOperator
+		}
 
-		if ok {
-			return &word, nil
-		}
-		token := Token{
-			sType:  sTypeOperator,
-			lexeme: lexeme,
-		}
+		token.sType = sType
+		token.lexeme = lexeme
 		lexer.reserve(token)
 
 		return &token, nil
