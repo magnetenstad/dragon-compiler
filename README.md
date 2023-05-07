@@ -11,7 +11,6 @@ number      -> [0-9]+
 identifier  -> [a-zA-Z]+
 operator    -> = | < | > | * | / | + | - | <= | >= | == | !=
 
-octothorpe  -> #
 print       -> print
 ```
 
@@ -22,13 +21,28 @@ print       -> print
 ```txt
 
 program     -> blocks
-blocks      -> blocks block | block
-block       -> { statements blocks }
-statements  -> statements statement | statement
+
+blocks      ->
+    block blocks
+  | block
+
+block       ->
+  { blocks }
+  { statements }
+
+statements  ->
+    statement statements
+  | statement
+
 statement   ->
-      identifier = expression ;
-    | print expression ;
-    | # expression ;
-expression  -> ( expression operator expression ) | number | literal | identifier
+    identifier = expression ;
+  | print expression ;
+  | # expression ;
+
+expression  ->
+    ( expression operator expression )
+  | number
+  | literal
+  | identifier
 
 ```

@@ -71,7 +71,11 @@ func (parser *Parser) parse() Node {
 }
 
 func (parser *Parser) matchProgram() {
-	for parser.lookahead.sType != sTypeZero {
+	parser.matchBlocks()
+}
+
+func (parser *Parser) matchBlocks() {
+	for parser.lookahead.sType == '{' {
 		parser.matchBlock()
 	}
 }
@@ -80,6 +84,14 @@ func (parser *Parser) matchBlock() {
 	parser.match('{')
 
 	for !parser.matchOptional('}') {
+		parser.matchBlocks()
+		parser.matchStatements()
+	}
+}
+
+func (parser *Parser) matchStatements() {
+	for parser.lookahead.sType != '}' &&
+		parser.lookahead.sType != '{' {
 		parser.matchStatement()
 	}
 }
@@ -126,8 +138,6 @@ func (parser *Parser) matchExpression() {
 	case '(':
 		parser.match('(')
 		parser.matchExpression()
-		parser.match(sTypeOperator)
-		parser.matchExpression()
 		parser.match(')')
 
 	default:
@@ -135,6 +145,12 @@ func (parser *Parser) matchExpression() {
 			"matchExpression: syntax error at line %d, expected expression, found %s",
 			parser.lookahead.position.line,
 			parser.lookahead.lexeme))
+	}
+
+	if parser.lookahead.sType == sTypeOperator {
+		// TODO: Handle operator presedence
+		parser.match(sTypeOperator)
+		parser.matchExpression()
 	}
 }
 
