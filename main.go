@@ -6,11 +6,9 @@ import (
 	"os"
 )
 
-const filename = "assets/dragon"
-
 func main() {
 
-	file, err := os.Open(filename + ".txt")
+	file, err := os.Open("assets/basic.bip")
 	check(err)
 	defer file.Close()
 
@@ -18,15 +16,14 @@ func main() {
 	lexer := newLexer(reader)
 	tokens := lexer.scanAll()
 
+	fmt.Println()
 	fmt.Println(tokens)
+	fmt.Println()
+	fmt.Println(lexer.words)
+	fmt.Println()
 
 	parser := newParser(tokens)
 	root := parser.parse()
 	fmt.Println(root)
-
-	// file, err = os.Create(filename + ".html")
-	// check(err)
-	// defer file.Close()
-	// _, err = file.WriteString(fmt.Sprintln(tokens))
 
 }

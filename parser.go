@@ -22,57 +22,38 @@ func newParser(tokens []Token) Parser {
 	}
 }
 
-func (parser *Parser) parse() Node {
-	parser.next()
-	parser.stmt()
-	return parser.root
-}
-
-func (parser *Parser) stmt() {
-	switch parser.lookahead.tag {
-
-	case TagExpr:
-		parser.match(TagExpr)
-		parser.match(';')
-		break
-
-	case TagIf:
-		parser.match(TagIf)
-		parser.match('(')
-		parser.match(TagExpr)
-		parser.match(')')
-		parser.stmt()
-		break
-
-	case TagFor:
-		parser.match(TagFor)
-		parser.match('(')
-		parser.optexpr()
-		parser.match(';')
-		parser.optexpr()
-		parser.match(';')
-		parser.optexpr()
-		parser.match(')')
-		parser.stmt()
-		break
-
-	default:
-		panic(fmt.Sprintf("stmt: syntax error, %d", parser.lookahead.tag))
-	}
-}
-
-func (parser *Parser) match(tag Tag) {
-	if parser.lookahead.tag == tag {
+func (parser *Parser) match(sType SymbolType) {
+	if parser.lookahead.sType == sType {
 		parser.next()
 	} else {
-		panic("match: syntax error")
+		panic(fmt.Sprintf(
+			"match: syntax error at index %d, expected %d (%c), found %d (%c)",
+			parser.index,
+			sType,
+			rune(sType),
+			parser.lookahead.sType,
+			rune(parser.lookahead.sType)))
 	}
 }
 
-func (parser *Parser) optexpr() {
-	if parser.lookahead.tag == TagExpr {
-		parser.match(TagExpr)
+func (parser *Parser) matchLexeme(lexeme string) {
+	if parser.lookahead.lexeme == lexeme {
+		parser.next()
+	} else {
+		panic(fmt.Sprintf(
+			"match: syntax error at index %d, expected %s, found %s",
+			parser.index,
+			lexeme,
+			parser.lookahead.lexeme))
 	}
+}
+
+func (parser *Parser) matchOptional(sType SymbolType) bool {
+	if parser.lookahead.sType == sType {
+		parser.match(sType)
+		return true
+	}
+	return false
 }
 
 func (parser *Parser) next() bool {
@@ -81,5 +62,76 @@ func (parser *Parser) next() bool {
 		parser.lookahead = parser.tokens[parser.index]
 		return true
 	}
+	parser.lookahead = Token{}
 	return false
+}
+
+func (parser *Parser) parse() Node {
+	parser.next()
+	parser.matchProgram()
+	return parser.root
+}
+
+func (parser *Parser) matchProgram() {
+	for parser.lookahead.sType != sTypeZero {
+		parser.matchBlock()
+	}
+}
+
+func (parser *Parser) matchBlock() {
+	parser.match('{')
+
+	for !parser.matchOptional('}') {
+		parser.matchStatement()
+	}
+}
+
+func (parser *Parser) matchStatement() {
+	switch parser.lookahead.sType {
+
+	case sTypePrint:
+		parser.match(sTypePrint)
+		parser.matchExpression()
+		parser.match(';')
+
+	case sTypeIdentifier:
+		parser.match(sTypeIdentifier)
+		parser.matchLexeme("=")
+		parser.matchExpression()
+		parser.match(';')
+
+	case '#':
+		parser.match('#')
+		parser.matchExpression()
+		parser.match(';')
+
+	default:
+		panic(fmt.Sprintf(
+			"matchStatement: syntax error, %d", parser.lookahead.sType))
+	}
+}
+
+func (parser *Parser) matchExpression() {
+	switch parser.lookahead.sType {
+
+	case sTypeIdentifier:
+		parser.match(sTypeIdentifier)
+
+	case sTypeLiteral:
+		parser.match(sTypeLiteral)
+
+	case sTypeNumber:
+		parser.match(sTypeNumber)
+
+	case '(':
+		parser.match('(')
+		parser.matchExpression()
+		parser.match(sTypeOperator)
+		parser.matchExpression()
+		parser.match(')')
+
+	default:
+		panic(fmt.Sprintf(
+			"matchExpression: syntax error, %d", parser.lookahead.sType))
+	}
 }

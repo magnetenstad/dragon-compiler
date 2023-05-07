@@ -7,24 +7,10 @@ import (
 )
 
 type Token struct {
-	tag    Tag
+	sType  SymbolType
 	value  int
 	lexeme string
 }
-
-type Tag int
-
-const (
-	TagZero Tag = 0
-	TagNum  Tag = iota + 256
-	TagId
-	TagTrue
-	TagFalse
-	TagString
-	TagExpr
-	TagIf
-	TagFor
-)
 
 type Lexer struct {
 	line   int
@@ -40,11 +26,7 @@ func newLexer(reader io.RuneReader) Lexer {
 		words:  make(map[string]Token),
 		reader: reader,
 	}
-	lexer.reserve(Token{TagTrue, 1, "true"})
-	lexer.reserve(Token{TagFalse, 0, "false"})
-	lexer.reserve(Token{TagExpr, 0, "expr"}) // TODO: Remove this
-	lexer.reserve(Token{TagIf, 0, "if"})
-	lexer.reserve(Token{TagFor, 0, "for"})
+	lexer.reserve(Token{sType: sTypePrint, lexeme: "print"})
 	return lexer
 }
 
@@ -78,6 +60,11 @@ func (lexer *Lexer) scan() (*Token, error) {
 		return nil, err
 	}
 
+	token := Token{
+		sType:  SymbolType(lexer.peek),
+		lexeme: string(lexer.peek),
+	}
+
 	if lexer.peek == '"' {
 		var sb strings.Builder
 
@@ -91,10 +78,9 @@ func (lexer *Lexer) scan() (*Token, error) {
 		lexer.peekNext()
 
 		lexeme := sb.String()
-		token := Token{
-			tag:    TagString,
-			lexeme: lexeme,
-		}
+
+		token.sType = sTypeLiteral
+		token.lexeme = lexeme
 		return &token, nil
 	}
 
@@ -106,10 +92,8 @@ func (lexer *Lexer) scan() (*Token, error) {
 			lexer.peekNext()
 		}
 
-		token := Token{
-			tag:   TagNum,
-			value: value,
-		}
+		token.sType = sTypeNumber
+		token.value = value
 		return &token, nil
 	}
 
@@ -128,7 +112,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 			return &word, nil
 		}
 		token := Token{
-			tag:    TagId,
+			sType:  sTypeIdentifier,
 			lexeme: lexeme,
 		}
 		lexer.reserve(token)
@@ -136,17 +120,36 @@ func (lexer *Lexer) scan() (*Token, error) {
 		return &token, nil
 	}
 
-	token := Token{
-		tag:    Tag(lexer.peek),
-		lexeme: string(lexer.peek),
+	if isOperator(lexer.peek) {
+		var sb strings.Builder
+
+		for isOperator(lexer.peek) {
+			sb.WriteRune(lexer.peek)
+			lexer.peekNext()
+		}
+
+		lexeme := sb.String()
+		word, ok := lexer.words[lexeme]
+
+		if ok {
+			return &word, nil
+		}
+		token := Token{
+			sType:  sTypeOperator,
+			lexeme: lexeme,
+		}
+		lexer.reserve(token)
+
+		return &token, nil
 	}
+
 	lexer.peek = ' '
 	return &token, nil
 }
 
 func (lexer *Lexer) scanAll() []Token {
 	var tokens []Token
-	for true {
+	for {
 		token, err := lexer.scan()
 		if err != nil {
 			break
@@ -154,4 +157,15 @@ func (lexer *Lexer) scanAll() []Token {
 		tokens = append(tokens, *token)
 	}
 	return tokens
+}
+
+func isOperator(r rune) bool {
+	return r == '<' ||
+		r == '>' ||
+		r == '*' ||
+		r == '/' ||
+		r == '+' ||
+		r == '-' ||
+		r == '!' ||
+		r == '='
 }
