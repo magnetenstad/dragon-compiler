@@ -26,7 +26,7 @@ type Lexer struct {
 
 func newLexer(reader io.RuneReader) Lexer {
 	lexer := Lexer{
-		line:    0,
+		line:    1,
 		peek:    ' ',
 		lexemes: make(map[string]SymbolType),
 		reader:  reader,

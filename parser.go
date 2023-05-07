@@ -26,7 +26,7 @@ func (parser *Parser) match(sType SymbolType) {
 	if parser.lookahead.sType == sType {
 		parser.next()
 	} else {
-		panic(fmt.Sprintf(
+		parser.panic(fmt.Sprintf(
 			"match: syntax error at line %d, expected %c, found %s",
 			parser.lookahead.position.line,
 			rune(sType),
@@ -38,7 +38,7 @@ func (parser *Parser) matchLexeme(lexeme string) {
 	if parser.lookahead.lexeme == lexeme {
 		parser.next()
 	} else {
-		panic(fmt.Sprintf(
+		parser.panic(fmt.Sprintf(
 			"match: syntax error at line %d, expected %s, found %s",
 			parser.lookahead.position.line,
 			lexeme,
@@ -104,7 +104,7 @@ func (parser *Parser) matchStatement() {
 		parser.match(';')
 
 	default:
-		panic(fmt.Sprintf(
+		parser.panic(fmt.Sprintf(
 			"matchStatement: syntax error at line %d, found %s",
 			parser.lookahead.position.line,
 			parser.lookahead.lexeme))
@@ -131,7 +131,21 @@ func (parser *Parser) matchExpression() {
 		parser.match(')')
 
 	default:
-		panic(fmt.Sprintf(
-			"matchExpression: syntax error, %d", parser.lookahead.sType))
+		parser.panic(fmt.Sprintf(
+			"matchExpression: syntax error at line %d, expected expression, found %s",
+			parser.lookahead.position.line,
+			parser.lookahead.lexeme))
+	}
+}
+
+func (parser *Parser) panic(msg string) {
+	fmt.Println(msg)
+	if !parser.next() {
+		panic("")
+	}
+	for parser.lookahead.sType != ';' {
+		if !parser.next() {
+			panic("")
+		}
 	}
 }
