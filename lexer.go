@@ -11,7 +11,7 @@ type Position struct {
 }
 
 type Token struct {
-	sType    SymbolType
+	Type     TokenType
 	value    int
 	lexeme   string
 	position Position
@@ -20,7 +20,7 @@ type Token struct {
 type Lexer struct {
 	line    int
 	peek    rune
-	lexemes map[string]SymbolType
+	lexemes map[string]TokenType
 	reader  io.RuneReader
 }
 
@@ -28,15 +28,15 @@ func newLexer(reader io.RuneReader) Lexer {
 	lexer := Lexer{
 		line:    1,
 		peek:    ' ',
-		lexemes: make(map[string]SymbolType),
+		lexemes: make(map[string]TokenType),
 		reader:  reader,
 	}
-	lexer.reserve(Token{sType: sTypePrint, lexeme: "print"})
+	lexer.reserve(Token{Type: tTypePrint, lexeme: "print"})
 	return lexer
 }
 
 func (lexer *Lexer) reserve(token Token) {
-	lexer.lexemes[token.lexeme] = token.sType
+	lexer.lexemes[token.lexeme] = token.Type
 }
 
 func (lexer *Lexer) peekNext() error {
@@ -69,7 +69,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 	}
 
 	token := Token{
-		sType:  SymbolType(lexer.peek),
+		Type:   TokenType(lexer.peek),
 		lexeme: string(lexer.peek),
 		position: Position{
 			line: lexer.line,
@@ -90,7 +90,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 
 		lexeme := sb.String()
 
-		token.sType = sTypeLiteral
+		token.Type = tTypeLiteral
 		token.lexeme = lexeme
 		return &token, nil
 	}
@@ -103,7 +103,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 			lexer.peekNext()
 		}
 
-		token.sType = sTypeNumber
+		token.Type = tTypeNumber
 		token.value = value
 		return &token, nil
 	}
@@ -119,10 +119,10 @@ func (lexer *Lexer) scan() (*Token, error) {
 		lexeme := sb.String()
 		sType, exists := lexer.lexemes[lexeme]
 		if !exists {
-			sType = sTypeIdentifier
+			sType = tTypeIdentifier
 		}
 
-		token.sType = sType
+		token.Type = sType
 		token.lexeme = lexeme
 		lexer.reserve(token)
 
@@ -141,10 +141,10 @@ func (lexer *Lexer) scan() (*Token, error) {
 		lexeme := sb.String()
 		sType, exists := lexer.lexemes[lexeme]
 		if !exists {
-			sType = sTypeOperator
+			sType = tTypeOperator
 		}
 
-		token.sType = sType
+		token.Type = sType
 		token.lexeme = lexeme
 		lexer.reserve(token)
 

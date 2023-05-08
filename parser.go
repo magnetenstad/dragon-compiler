@@ -1,17 +1,38 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Node struct {
-	token    Token
-	children []Node
+	Type   NodeType
+	Name   string
+	Lexeme string
+	Number float64
+	// Symbol   Symbol
+	Children []*Node
+}
+
+func (node *Node) addChild(child *Node) {
+	node.Children = append(node.Children, child)
+}
+
+func (parent *Node) parseAsChild(fn func(*Node) *Node) {
+	parent.addChild(fn(parent))
+}
+
+func (node *Node) setNames() {
+	node.Name = node.Type.name()
+	for _, child := range node.Children {
+		child.setNames()
+	}
 }
 
 type Parser struct {
 	tokens    []Token
 	index     int
 	lookahead Token
-	root      Node
+	root      *Node
 	hasError  bool
 	line      int
 }
@@ -20,17 +41,21 @@ func newParser(tokens []Token) Parser {
 	return Parser{
 		tokens: tokens,
 		index:  -1,
-		root:   Node{},
+		root:   &Node{},
 		line:   1,
 	}
 }
 
-func (parser *Parser) match(sType SymbolType) {
-	if parser.lookahead.sType == sType {
+func (parser *Parser) match(tType TokenType) Token {
+	token := parser.lookahead
+
+	if token.Type == tType {
 		parser.next()
-	} else {
-		parser.panic("match", string(rune(sType)))
+		return token
 	}
+
+	parser.panic("match", string(rune(tType)))
+	return Token{}
 }
 
 func (parser *Parser) matchLexeme(lexeme string) {
@@ -41,56 +66,72 @@ func (parser *Parser) matchLexeme(lexeme string) {
 	}
 }
 
-func (parser *Parser) matchOptional(sType SymbolType) bool {
-	if parser.lookahead.sType == sType {
-		parser.match(sType)
-		return true
-	}
-	return false
-}
+// func (parser *Parser) matchOptional(tType TokenType) bool {
+// 	if parser.lookahead.tType == tType {
+// 		parser.match(tType)
+// 		return true
+// 	}
+
+// 	return false
+// }
 
 func (parser *Parser) next() bool {
 	parser.line = parser.lookahead.position.line
+
 	if parser.index < len(parser.tokens)-1 {
 		parser.index += 1
 		parser.lookahead = parser.tokens[parser.index]
 		return true
 	}
+
 	parser.lookahead = Token{}
 	return false
 }
 
-func (parser *Parser) parse() Node {
+func (parser *Parser) parse() *Node {
 	parser.next()
-	parser.matchProgram()
-	if parser.lookahead.sType != sTypeZero {
+	parser.root = parser.matchProgram(&Node{})
+	parser.root.setNames()
+
+	if parser.lookahead.Type != tTypeZero {
 		parser.panic("parse", "EOF")
 	}
+
 	return parser.root
 }
 
-func (parser *Parser) matchProgram() {
-	parser.matchBlocks()
+func (parser *Parser) matchProgram(parent *Node) *Node {
+	node := Node{Type: nTypeProgram}
+
+	node.parseAsChild(parser.matchBlocks)
+
+	return &node
 }
 
-func (parser *Parser) matchBlocks() {
-	for parser.lookahead.sType == '{' {
-		parser.matchBlock()
+func (parser *Parser) matchBlocks(parent *Node) *Node {
+	node := Node{Type: nTypeBlocks}
+
+	for parser.lookahead.Type == '{' {
+		node.parseAsChild(parser.matchBlock)
 	}
+
+	return &node
 }
 
-func (parser *Parser) matchBlock() {
+func (parser *Parser) matchBlock(parent *Node) *Node {
+	node := Node{Type: nTypeBlock}
+
 	parser.match('{')
 
 	for {
-		if parser.lookahead.sType == '{' {
-			parser.matchBlocks()
+		if parser.lookahead.Type == '{' {
+			node.parseAsChild(parser.matchBlocks)
 			continue
 		}
-		if parser.lookahead.sType == sTypePrint ||
-			parser.lookahead.sType == sTypeIdentifier ||
-			parser.lookahead.sType == '#' {
-			parser.matchStatements()
+		if parser.lookahead.Type == tTypePrint ||
+			parser.lookahead.Type == tTypeIdentifier ||
+			parser.lookahead.Type == '#' {
+			node.parseAsChild(parser.matchStatements)
 			continue
 		}
 		break
@@ -98,71 +139,116 @@ func (parser *Parser) matchBlock() {
 
 	parser.match('}')
 
-	parser.handleError(sTypeBlock)
+	parser.handleError(nTypeBlock)
+	return &node
 }
 
-func (parser *Parser) matchStatements() {
-	for parser.lookahead.sType == sTypePrint ||
-		parser.lookahead.sType == sTypeIdentifier ||
-		parser.lookahead.sType == '#' {
-		parser.matchStatement()
+func (parser *Parser) matchStatements(parent *Node) *Node {
+	node := Node{Type: nTypeStatements}
+
+	for parser.lookahead.Type == tTypePrint ||
+		parser.lookahead.Type == tTypeIdentifier ||
+		parser.lookahead.Type == '#' {
+		node.parseAsChild(parser.matchStatement)
 	}
+	return &node
 }
 
-func (parser *Parser) matchStatement() {
-	switch parser.lookahead.sType {
+func (parser *Parser) matchStatement(parent *Node) *Node {
+	node := Node{Type: nTypeStatement}
 
-	case sTypePrint:
-		parser.match(sTypePrint)
-		parser.matchExpression()
-		parser.match(';')
+	switch parser.lookahead.Type {
 
-	case sTypeIdentifier:
-		parser.match(sTypeIdentifier)
-		parser.matchLexeme("=")
-		parser.matchExpression()
-		parser.match(';')
+	case tTypePrint:
+		node.parseAsChild(parser.matchPrintStatement)
+
+	case tTypeIdentifier:
+		node.parseAsChild(parser.matchAssignmentStatement)
 
 	case '#':
-		parser.match('#')
-		parser.matchExpression()
-		parser.match(';')
+		node.parseAsChild(parser.matchOctothorpeStatement)
 
 	default:
 		parser.panic("matchStatement", "statement")
 	}
 
-	parser.handleError(sTypeStatement)
+	parser.handleError(nTypeStatement)
+
+	return &node
 }
 
-func (parser *Parser) matchExpression() {
-	switch parser.lookahead.sType {
+func (parser *Parser) matchPrintStatement(parent *Node) *Node {
+	node := Node{Type: nTypePrintStatement}
+	parser.match(tTypePrint)
+	node.parseAsChild(parser.matchExpression)
+	parser.match(';')
+	return &node
+}
 
-	case sTypeIdentifier:
-		parser.match(sTypeIdentifier)
+func (parser *Parser) matchAssignmentStatement(parent *Node) *Node {
+	node := Node{Type: nTypeAssignmentStatement}
+	token := parser.match(tTypeIdentifier)
+	node.addChild(&Node{
+		Type:   nTypeIdentifier,
+		Lexeme: token.lexeme,
+	})
+	parser.matchLexeme("=")
+	node.parseAsChild(parser.matchExpression)
+	parser.match(';')
+	return &node
+}
 
-	case sTypeLiteral:
-		parser.match(sTypeLiteral)
+func (parser *Parser) matchOctothorpeStatement(parent *Node) *Node {
+	node := Node{Type: nTypeOctothorpeStatement}
+	parser.match('#')
+	node.parseAsChild(parser.matchExpression)
+	parser.match(';')
+	return &node
+}
 
-	case sTypeNumber:
-		parser.match(sTypeNumber)
+func (parser *Parser) matchExpression(parent *Node) *Node {
+	node := Node{Type: nTypeExpression}
+
+	switch parser.lookahead.Type {
+
+	case tTypeIdentifier:
+		parser.match(tTypeIdentifier)
+		node.addChild(&Node{
+			Type: nTypeIdentifier,
+		})
+
+	case tTypeLiteral:
+		token := parser.match(tTypeLiteral)
+		node.addChild(&Node{
+			Type:   nTypeLiteral,
+			Lexeme: token.lexeme,
+		})
+
+	case tTypeNumber:
+		token := parser.match(tTypeNumber)
+		node.addChild(&Node{
+			Type:   nTypeNumber,
+			Number: float64(token.value),
+		})
 
 	case '(':
 		parser.match('(')
-		parser.matchExpression()
+		node.parseAsChild(parser.matchExpression)
 		parser.match(')')
 
 	default:
 		parser.panic("matchExpression", "expression")
 	}
 
-	if parser.lookahead.sType == sTypeOperator {
+	if parser.lookahead.Type == tTypeOperator {
 		// TODO: Handle operator presedence
-		parser.match(sTypeOperator)
-		parser.matchExpression()
+		parser.match(tTypeOperator)
+		node.parseAsChild(parser.matchExpression)
 	}
 
-	parser.handleError(sTypeExpression)
+	parser.handleError(nTypeExpression)
+
+	return &node
 }
 
 func (parser *Parser) panic(where string, expected string) {
@@ -175,28 +261,28 @@ func (parser *Parser) panic(where string, expected string) {
 	parser.hasError = true
 }
 
-func (parser *Parser) handleError(sType SymbolType) {
+func (parser *Parser) handleError(nType NodeType) {
 	if !parser.hasError {
 		return
 	}
 	parser.hasError = false
 	// try to synchronize
 	for {
-		tokenType := parser.lookahead.sType
-		switch sType {
-		case sTypeExpression:
-			if tokenType == sTypePrint ||
-				tokenType == sTypeIdentifier {
+		tokenType := parser.lookahead.Type
+		switch nType {
+		case nTypeExpression:
+			if tokenType == tTypePrint ||
+				tokenType == tTypeIdentifier {
 				return
 			}
 			if tokenType == ';' {
 				parser.next()
 				return
 			}
-		case sTypeStatement:
+		case nTypeStatement:
 			if tokenType == '{' ||
-				tokenType == sTypePrint ||
-				tokenType == sTypeIdentifier {
+				tokenType == tTypePrint ||
+				tokenType == tTypeIdentifier {
 				return
 			}
 			if tokenType == ';' {
@@ -204,7 +290,7 @@ func (parser *Parser) handleError(sType SymbolType) {
 				return
 			}
 
-		case sTypeBlock:
+		case nTypeBlock:
 			if tokenType == '{' {
 				return
 			}

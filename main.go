@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 )
@@ -26,4 +27,14 @@ func main() {
 	root := parser.parse()
 	fmt.Println(root)
 
+	file, err = os.Create("assets/basic.bop")
+	check(err)
+	defer file.Close()
+	file.Write(toJson(root))
+
+}
+
+func toJson(obj interface{}) []byte {
+	bytes, _ := json.MarshalIndent(obj, "\t", "\t")
+	return bytes
 }
