@@ -12,6 +12,8 @@ type Parser struct {
 	index     int
 	lookahead Token
 	root      Node
+	hasError  bool
+	line      int
 }
 
 func newParser(tokens []Token) Parser {
@@ -19,6 +21,7 @@ func newParser(tokens []Token) Parser {
 		tokens: tokens,
 		index:  -1,
 		root:   Node{},
+		line:   1,
 	}
 }
 
@@ -26,11 +29,7 @@ func (parser *Parser) match(sType SymbolType) {
 	if parser.lookahead.sType == sType {
 		parser.next()
 	} else {
-		parser.panic(fmt.Sprintf(
-			"match: syntax error at line %d, expected %c, found %s",
-			parser.lookahead.position.line,
-			rune(sType),
-			parser.lookahead.lexeme))
+		parser.panic("match", string(rune(sType)))
 	}
 }
 
@@ -38,11 +37,7 @@ func (parser *Parser) matchLexeme(lexeme string) {
 	if parser.lookahead.lexeme == lexeme {
 		parser.next()
 	} else {
-		parser.panic(fmt.Sprintf(
-			"match: syntax error at line %d, expected %s, found %s",
-			parser.lookahead.position.line,
-			lexeme,
-			parser.lookahead.lexeme))
+		parser.panic("matchLexeme", parser.lookahead.lexeme)
 	}
 }
 
@@ -55,6 +50,7 @@ func (parser *Parser) matchOptional(sType SymbolType) bool {
 }
 
 func (parser *Parser) next() bool {
+	parser.line = parser.lookahead.position.line
 	if parser.index < len(parser.tokens)-1 {
 		parser.index += 1
 		parser.lookahead = parser.tokens[parser.index]
@@ -67,6 +63,9 @@ func (parser *Parser) next() bool {
 func (parser *Parser) parse() Node {
 	parser.next()
 	parser.matchProgram()
+	if parser.lookahead.sType != sTypeZero {
+		parser.panic("parse", "EOF")
+	}
 	return parser.root
 }
 
@@ -83,15 +82,29 @@ func (parser *Parser) matchBlocks() {
 func (parser *Parser) matchBlock() {
 	parser.match('{')
 
-	for !parser.matchOptional('}') {
-		parser.matchBlocks()
-		parser.matchStatements()
+	for {
+		if parser.lookahead.sType == '{' {
+			parser.matchBlocks()
+			continue
+		}
+		if parser.lookahead.sType == sTypePrint ||
+			parser.lookahead.sType == sTypeIdentifier ||
+			parser.lookahead.sType == '#' {
+			parser.matchStatements()
+			continue
+		}
+		break
 	}
+
+	parser.match('}')
+
+	parser.handleError(sTypeBlock)
 }
 
 func (parser *Parser) matchStatements() {
-	for parser.lookahead.sType != '}' &&
-		parser.lookahead.sType != '{' {
+	for parser.lookahead.sType == sTypePrint ||
+		parser.lookahead.sType == sTypeIdentifier ||
+		parser.lookahead.sType == '#' {
 		parser.matchStatement()
 	}
 }
@@ -116,11 +129,10 @@ func (parser *Parser) matchStatement() {
 		parser.match(';')
 
 	default:
-		parser.panic(fmt.Sprintf(
-			"matchStatement: syntax error at line %d, found %s",
-			parser.lookahead.position.line,
-			parser.lookahead.lexeme))
+		parser.panic("matchStatement", "statement")
 	}
+
+	parser.handleError(sTypeStatement)
 }
 
 func (parser *Parser) matchExpression() {
@@ -141,10 +153,7 @@ func (parser *Parser) matchExpression() {
 		parser.match(')')
 
 	default:
-		parser.panic(fmt.Sprintf(
-			"matchExpression: syntax error at line %d, expected expression, found %s",
-			parser.lookahead.position.line,
-			parser.lookahead.lexeme))
+		parser.panic("matchExpression", "expression")
 	}
 
 	if parser.lookahead.sType == sTypeOperator {
@@ -152,16 +161,60 @@ func (parser *Parser) matchExpression() {
 		parser.match(sTypeOperator)
 		parser.matchExpression()
 	}
+
+	parser.handleError(sTypeExpression)
 }
 
-func (parser *Parser) panic(msg string) {
-	fmt.Println(msg)
-	if !parser.next() {
-		panic("")
+func (parser *Parser) panic(where string, expected string) {
+	fmt.Printf(
+		"%s: syntax error at line %d, expected '%s', found '%s'\n",
+		where,
+		parser.line,
+		expected,
+		parser.lookahead.lexeme)
+	parser.hasError = true
+}
+
+func (parser *Parser) handleError(sType SymbolType) {
+	if !parser.hasError {
+		return
 	}
-	for parser.lookahead.sType != ';' {
+	parser.hasError = false
+	// try to synchronize
+	for {
+		tokenType := parser.lookahead.sType
+		switch sType {
+		case sTypeExpression:
+			if tokenType == sTypePrint ||
+				tokenType == sTypeIdentifier {
+				return
+			}
+			if tokenType == ';' {
+				parser.next()
+				return
+			}
+		case sTypeStatement:
+			if tokenType == '{' ||
+				tokenType == sTypePrint ||
+				tokenType == sTypeIdentifier {
+				return
+			}
+			if tokenType == ';' {
+				parser.next()
+				return
+			}
+
+		case sTypeBlock:
+			if tokenType == '{' {
+				return
+			}
+			if tokenType == '}' {
+				parser.next()
+				return
+			}
+		}
 		if !parser.next() {
-			panic("")
+			panic("Could not continue parsing")
 		}
 	}
 }
