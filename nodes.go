@@ -1,24 +1,36 @@
 package main
 
-type TokenType int
+type Node struct {
+	Type     NodeType
+	Name     string // For debugging
+	Lexeme   string
+	Number   float64
+	Children []*Node
+}
 
-const (
-	tTypeZero       TokenType = 0
-	tTypeIdentifier           = iota + 256
-	tTypeLiteral
-	tTypeNumber
-	tTypeOperator
-	tTypePrint
-)
+func (node *Node) addChild(child *Node) {
+	node.Children = append(node.Children, child)
+}
+
+func (parent *Node) parseAsChild(fn func(*Node) *Node) {
+	parent.addChild(fn(parent))
+}
+
+func (node *Node) setNames() {
+	node.Name = node.Type.name()
+	for _, child := range node.Children {
+		child.setNames()
+	}
+}
 
 type NodeType int
 
 const (
 	nTypeZero       NodeType = 0
-	nTypeIdentifier          = iota + 256 // keep equal to tTypeX
-	nTypeLiteral                          //
-	nTypeNumber                           //
-	nTypeOperator                         //
+	nTypeIdentifier          = iota + 256
+	nTypeLiteral
+	nTypeNumber
+	nTypeOperator
 	nTypeProgram
 	nTypeBlocks
 	nTypeBlock

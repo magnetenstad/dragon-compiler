@@ -6,6 +6,17 @@ import (
 	"unicode"
 )
 
+type TokenType int
+
+const (
+	tTypeZero       TokenType = 0
+	tTypeIdentifier           = iota + 256
+	tTypeLiteral
+	tTypeNumber
+	tTypeOperator
+	tTypePrint
+)
+
 type Position struct {
 	line int
 }

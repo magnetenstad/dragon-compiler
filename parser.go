@@ -4,29 +4,9 @@ import (
 	"fmt"
 )
 
-type Node struct {
-	Type   NodeType
-	Name   string
-	Lexeme string
-	Number float64
-	// Symbol   Symbol
-	Children []*Node
-}
-
-func (node *Node) addChild(child *Node) {
-	node.Children = append(node.Children, child)
-}
-
-func (parent *Node) parseAsChild(fn func(*Node) *Node) {
-	parent.addChild(fn(parent))
-}
-
-func (node *Node) setNames() {
-	node.Name = node.Type.name()
-	for _, child := range node.Children {
-		child.setNames()
-	}
-}
+/*
+	A basic handwritten top-down predictive LL(1) parser.
+*/
 
 type Parser struct {
 	tokens    []Token
