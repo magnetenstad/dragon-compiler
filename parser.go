@@ -6,6 +6,7 @@ import (
 
 /*
 	A basic handwritten top-down predictive LL(1) parser.
+	Builds an AST.
 */
 
 type Parser struct {
@@ -192,9 +193,10 @@ func (parser *Parser) matchExpression(parent *Node) *Node {
 	switch parser.lookahead.Type {
 
 	case tTypeIdentifier:
-		parser.match(tTypeIdentifier)
+		token := parser.match(tTypeIdentifier)
 		node.addChild(&Node{
-			Type: nTypeIdentifier,
+			Type:   nTypeIdentifier,
+			Lexeme: token.lexeme,
 		})
 
 	case tTypeLiteral:
@@ -208,7 +210,7 @@ func (parser *Parser) matchExpression(parent *Node) *Node {
 		token := parser.match(tTypeNumber)
 		node.addChild(&Node{
 			Type:   nTypeNumber,
-			Number: float64(token.value),
+			Number: token.value,
 		})
 
 	case '(':
@@ -222,6 +224,8 @@ func (parser *Parser) matchExpression(parent *Node) *Node {
 
 	if parser.lookahead.Type == tTypeOperator {
 		// TODO: Handle operator presedence
+		node.Type = nTypeOperator
+		node.Lexeme = parser.lookahead.lexeme
 		parser.match(tTypeOperator)
 		node.parseAsChild(parser.matchExpression)
 	}

@@ -27,10 +27,16 @@ func main() {
 	root := parser.parse()
 	fmt.Println(root)
 
-	file, err = os.Create("assets/basic.bop")
+	file, err = os.Create("assets/basic.ast")
 	check(err)
 	defer file.Close()
 	file.Write(toJson(root))
+
+	file, err = os.Create("assets/basic.c")
+	check(err)
+	defer file.Close()
+	output := generateCProgram(root)
+	file.WriteString(output)
 
 }
 

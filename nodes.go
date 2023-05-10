@@ -4,7 +4,7 @@ type Node struct {
 	Type     NodeType
 	Name     string // For debugging
 	Lexeme   string
-	Number   float64
+	Number   int
 	Children []*Node
 }
 

@@ -110,7 +110,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 		value := 0
 
 		for unicode.IsDigit(lexer.peek) {
-			value = value*10 + int(lexer.peek)
+			value = value*10 + (int(lexer.peek) - '0')
 			lexer.peekNext()
 		}
 
