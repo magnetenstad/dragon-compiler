@@ -111,7 +111,7 @@ func (parser *Parser) matchBlock(parent *Node) *Node {
 		}
 		if parser.lookahead.Type == tTypePrint ||
 			parser.lookahead.Type == tTypeIdentifier ||
-			parser.lookahead.Type == '#' {
+			parser.lookahead.Type == tTypeRequire {
 			node.parseAsChild(parser.matchStatements)
 			continue
 		}
@@ -129,7 +129,7 @@ func (parser *Parser) matchStatements(parent *Node) *Node {
 
 	for parser.lookahead.Type == tTypePrint ||
 		parser.lookahead.Type == tTypeIdentifier ||
-		parser.lookahead.Type == '#' {
+		parser.lookahead.Type == tTypeRequire {
 		node.parseAsChild(parser.matchStatement)
 	}
 	return &node
@@ -146,7 +146,7 @@ func (parser *Parser) matchStatement(parent *Node) *Node {
 	case tTypeIdentifier:
 		node.parseAsChild(parser.matchAssignmentStatement)
 
-	case '#':
+	case tTypeRequire:
 		node.parseAsChild(parser.matchOctothorpeStatement)
 
 	default:
@@ -173,7 +173,7 @@ func (parser *Parser) matchAssignmentStatement(parent *Node) *Node {
 		Type:   nTypeIdentifier,
 		Lexeme: token.lexeme,
 	})
-	parser.matchLexeme("=")
+	parser.match(tTypeIs)
 	node.parseAsChild(parser.matchExpression)
 	parser.match(';')
 	return &node
@@ -181,7 +181,7 @@ func (parser *Parser) matchAssignmentStatement(parent *Node) *Node {
 
 func (parser *Parser) matchOctothorpeStatement(parent *Node) *Node {
 	node := Node{Type: nTypeOctothorpeStatement}
-	parser.match('#')
+	parser.match(tTypeRequire)
 	node.parseAsChild(parser.matchExpression)
 	parser.match(';')
 	return &node
@@ -212,6 +212,23 @@ func (parser *Parser) matchExpression(parent *Node) *Node {
 			Type:   nTypeNumber,
 			Number: token.value,
 		})
+
+	case tTypeBoolean:
+		token := parser.match(tTypeBoolean)
+		node.addChild(&Node{
+			Type:   nTypeBoolean,
+			Number: token.value,
+			Lexeme: token.lexeme,
+		})
+
+	case tTypeNot:
+		token := parser.match(tTypeNot)
+		notNode := &Node{
+			Type:   nTypeNot,
+			Lexeme: token.lexeme,
+		}
+		node.addChild(notNode)
+		notNode.parseAsChild(parser.matchExpression)
 
 	case '(':
 		parser.match('(')

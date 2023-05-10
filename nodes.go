@@ -30,6 +30,7 @@ const (
 	nTypeIdentifier          = iota + 256
 	nTypeLiteral
 	nTypeNumber
+	nTypeBoolean
 	nTypeOperator
 	nTypeProgram
 	nTypeBlocks
@@ -40,6 +41,7 @@ const (
 	nTypePrintStatement
 	nTypeOctothorpeStatement
 	nTypeAssignmentStatement
+	nTypeNot
 )
 
 func (sType NodeType) name() string {

@@ -13,8 +13,12 @@ const (
 	tTypeIdentifier           = iota + 256
 	tTypeLiteral
 	tTypeNumber
+	tTypeBoolean
 	tTypeOperator
 	tTypePrint
+	tTypeRequire
+	tTypeIs
+	tTypeNot
 )
 
 type Position struct {
@@ -31,7 +35,7 @@ type Token struct {
 type Lexer struct {
 	line    int
 	peek    rune
-	lexemes map[string]TokenType
+	lexemes map[string]Token
 	reader  io.RuneReader
 }
 
@@ -39,15 +43,20 @@ func newLexer(reader io.RuneReader) Lexer {
 	lexer := Lexer{
 		line:    1,
 		peek:    ' ',
-		lexemes: make(map[string]TokenType),
+		lexemes: make(map[string]Token),
 		reader:  reader,
 	}
+	lexer.reserve(Token{Type: tTypeBoolean, value: 1, lexeme: "true"})
+	lexer.reserve(Token{Type: tTypeBoolean, value: 0, lexeme: "false"})
 	lexer.reserve(Token{Type: tTypePrint, lexeme: "print"})
+	lexer.reserve(Token{Type: tTypeRequire, lexeme: "require"})
+	lexer.reserve(Token{Type: tTypeIs, lexeme: "is"})
+	lexer.reserve(Token{Type: tTypeNot, lexeme: "not"})
 	return lexer
 }
 
 func (lexer *Lexer) reserve(token Token) {
-	lexer.lexemes[token.lexeme] = token.Type
+	lexer.lexemes[token.lexeme] = token
 }
 
 func (lexer *Lexer) peekNext() error {
@@ -128,13 +137,16 @@ func (lexer *Lexer) scan() (*Token, error) {
 		}
 
 		lexeme := sb.String()
-		sType, exists := lexer.lexemes[lexeme]
-		if !exists {
-			sType = tTypeIdentifier
+		token.Type = tTypeIdentifier
+		token.lexeme = lexeme
+
+		existingToken, exists := lexer.lexemes[lexeme]
+		if exists {
+			token.Type = existingToken.Type
+			token.lexeme = existingToken.lexeme
+			token.value = existingToken.value
 		}
 
-		token.Type = sType
-		token.lexeme = lexeme
 		lexer.reserve(token)
 
 		return &token, nil
@@ -150,12 +162,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 		}
 
 		lexeme := sb.String()
-		sType, exists := lexer.lexemes[lexeme]
-		if !exists {
-			sType = tTypeOperator
-		}
-
-		token.Type = sType
+		token.Type = tTypeOperator
 		token.lexeme = lexeme
 		lexer.reserve(token)
 
