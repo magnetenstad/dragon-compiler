@@ -40,7 +40,7 @@ func main() {
 	file, err = os.Create("assets/basic.c")
 	error.Check(err)
 	defer file.Close()
-	output := c.GenerateCProgram(root)
+	output := c.Generate(root)
 	file.WriteString(output)
 
 	// file, err = os.Create("assets/basic.wast")

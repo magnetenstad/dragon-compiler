@@ -13,16 +13,16 @@ type Context struct {
 	sb    *strings.Builder
 }
 
-func GenerateCProgram(node *ast.Node) string {
+func Generate(node *ast.Node) string {
 	var sb strings.Builder
 	ctx := Context{
 		sb: &sb,
 	}
-	generateC(node, &ctx)
+	generate(node, &ctx)
 	return ctx.sb.String()
 }
 
-func generateC(node *ast.Node, ctx *Context) {
+func generate(node *ast.Node, ctx *Context) {
 
 	switch node.Type {
 
@@ -31,7 +31,7 @@ func generateC(node *ast.Node, ctx *Context) {
 		ctx.sb.WriteString("#include <stdio.h>\n\n")
 		ctx.sb.WriteString("int main(int argc, char *argv[]) {\n")
 		ctx.tabs += 1
-		generateC(node.Children[0], ctx)
+		generate(node.Children[0], ctx)
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("return 0;\n")
 		ctx.tabs -= 1
@@ -44,7 +44,7 @@ func generateC(node *ast.Node, ctx *Context) {
 		ctx.sb.WriteString(fmt.Sprintf("__StartBlock__%d: {\n", ctx.block))
 		ctx.tabs += 1
 		for _, child := range node.Children {
-			generateC(child, ctx)
+			generate(child, ctx)
 		}
 		ctx.tabs -= 1
 		writeTabs(ctx, ctx.tabs)
@@ -59,35 +59,35 @@ func generateC(node *ast.Node, ctx *Context) {
 		fallthrough
 	case ast.TypeStatement:
 		for _, child := range node.Children {
-			generateC(child, ctx)
+			generate(child, ctx)
 		}
 
 	case ast.TypePrintStatement:
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("printf(")
-		generateC(node.Children[0], ctx)
+		generate(node.Children[0], ctx)
 		ctx.sb.WriteString(");\n")
 
 	case ast.TypeAssignmentStatement:
 		writeTabs(ctx, ctx.tabs) // TODO: handle identifiers and types
 		ctx.sb.WriteString(fmt.Sprintf("int %s = ", node.Children[0].Lexeme))
-		generateC(node.Children[1], ctx)
+		generate(node.Children[1], ctx)
 		ctx.sb.WriteString(";\n")
 
 	case ast.TypeOctothorpeStatement:
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("if (!(")
-		generateC(node.Children[0], ctx)
+		generate(node.Children[0], ctx)
 		ctx.sb.WriteString(fmt.Sprintf(")) goto __EndBlock__%d;\n", ctx.block))
 
 	case ast.TypeExpression:
-		generateC(node.Children[0], ctx)
+		generate(node.Children[0], ctx)
 
 	case ast.TypeOperator:
 		ctx.sb.WriteString("(")
-		generateC(node.Children[0], ctx)
+		generate(node.Children[0], ctx)
 		ctx.sb.WriteString(node.Lexeme)
-		generateC(node.Children[1], ctx)
+		generate(node.Children[1], ctx)
 		ctx.sb.WriteString(")")
 
 	case ast.TypeLiteral:
@@ -104,7 +104,7 @@ func generateC(node *ast.Node, ctx *Context) {
 
 	case ast.TypeNot:
 		ctx.sb.WriteString("!(")
-		generateC(node.Children[0], ctx)
+		generate(node.Children[0], ctx)
 		ctx.sb.WriteString(")")
 
 	}
