@@ -6,19 +6,19 @@ import (
 	"unicode"
 )
 
-type TokeNType int
+type TokenType int
 
 const (
-	TTypeZero       TokeNType = 0
-	TTypeIdentifier           = iota + 256
-	TTypeLiteral
-	TTypeNumber
-	TTypeBoolean
-	TTypeOperator
-	TTypePrint
-	TTypeRequire
-	TTypeIs
-	TTypeNot
+	TypeZero       TokenType = 0
+	TypeIdentifier           = iota + 256
+	TypeLiteral
+	TypeNumber
+	TypeBoolean
+	TypeOperator
+	TypePrint
+	TypeRequire
+	TypeIs
+	TypeNot
 )
 
 type Position struct {
@@ -26,7 +26,7 @@ type Position struct {
 }
 
 type Token struct {
-	Type     TokeNType
+	Type     TokenType
 	Value    int
 	Lexeme   string
 	Position Position
@@ -46,12 +46,12 @@ func NewLexer(reader io.RuneReader) Lexer {
 		Lexemes: make(map[string]Token),
 		Reader:  reader,
 	}
-	lexer.reserve(Token{Type: TTypeBoolean, Value: 1, Lexeme: "true"})
-	lexer.reserve(Token{Type: TTypeBoolean, Value: 0, Lexeme: "false"})
-	lexer.reserve(Token{Type: TTypePrint, Lexeme: "print"})
-	lexer.reserve(Token{Type: TTypeRequire, Lexeme: "require"})
-	lexer.reserve(Token{Type: TTypeIs, Lexeme: "is"})
-	lexer.reserve(Token{Type: TTypeNot, Lexeme: "not"})
+	lexer.reserve(Token{Type: TypeBoolean, Value: 1, Lexeme: "true"})
+	lexer.reserve(Token{Type: TypeBoolean, Value: 0, Lexeme: "false"})
+	lexer.reserve(Token{Type: TypePrint, Lexeme: "print"})
+	lexer.reserve(Token{Type: TypeRequire, Lexeme: "require"})
+	lexer.reserve(Token{Type: TypeIs, Lexeme: "is"})
+	lexer.reserve(Token{Type: TypeNot, Lexeme: "not"})
 	return lexer
 }
 
@@ -89,7 +89,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 	}
 
 	token := Token{
-		Type:   TokeNType(lexer.Peek),
+		Type:   TokenType(lexer.Peek),
 		Lexeme: string(lexer.Peek),
 		Position: Position{
 			Line: lexer.Line,
@@ -110,7 +110,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 
 		lexeme := sb.String()
 
-		token.Type = TTypeLiteral
+		token.Type = TypeLiteral
 		token.Lexeme = lexeme
 		return &token, nil
 	}
@@ -123,7 +123,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 			lexer.peekNext()
 		}
 
-		token.Type = TTypeNumber
+		token.Type = TypeNumber
 		token.Value = value
 		return &token, nil
 	}
@@ -137,7 +137,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 		}
 
 		lexeme := sb.String()
-		token.Type = TTypeIdentifier
+		token.Type = TypeIdentifier
 		token.Lexeme = lexeme
 
 		existingToken, exists := lexer.Lexemes[lexeme]
@@ -162,7 +162,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 		}
 
 		lexeme := sb.String()
-		token.Type = TTypeOperator
+		token.Type = TypeOperator
 		token.Lexeme = lexeme
 		lexer.reserve(token)
 

@@ -1,4 +1,4 @@
-package node
+package ast
 
 type Node struct {
 	Type     NodeType
@@ -26,53 +26,53 @@ func (node *Node) SetNames() {
 type NodeType int
 
 const (
-	NTypeZero       NodeType = 0
-	NTypeIdentifier          = iota + 256
-	NTypeLiteral
-	NTypeNumber
-	NTypeBoolean
-	NTypeOperator
-	NTypeProgram
-	NTypeBlocks
-	NTypeBlock
-	NTypeStatements
-	NTypeStatement
-	NTypeExpression
-	NTypePrintStatement
-	NTypeOctothorpeStatement
-	NTypeAssignmentStatement
-	NTypeNot
+	TypeZero       NodeType = 0
+	TypeIdentifier          = iota + 256
+	TypeLiteral
+	TypeNumber
+	TypeBoolean
+	TypeOperator
+	TypeProgram
+	TypeBlocks
+	TypeBlock
+	TypeStatements
+	TypeStatement
+	TypeExpression
+	TypePrintStatement
+	TypeOctothorpeStatement
+	TypeAssignmentStatement
+	TypeNot
 )
 
 func (sType NodeType) name() string {
 	switch sType {
-	case NTypeZero:
+	case TypeZero:
 		return "Zero"
-	case NTypeNumber:
+	case TypeNumber:
 		return "Number"
-	case NTypeIdentifier:
+	case TypeIdentifier:
 		return "Identifier"
-	case NTypeLiteral:
+	case TypeLiteral:
 		return "Literal"
-	case NTypeOperator:
+	case TypeOperator:
 		return "Operator"
-	case NTypeProgram:
+	case TypeProgram:
 		return "Program"
-	case NTypeBlocks:
+	case TypeBlocks:
 		return "Blocks"
-	case NTypeBlock:
+	case TypeBlock:
 		return "Block"
-	case NTypeStatements:
+	case TypeStatements:
 		return "Statements"
-	case NTypeStatement:
+	case TypeStatement:
 		return "Statement"
-	case NTypeExpression:
+	case TypeExpression:
 		return "Expression"
-	case NTypePrintStatement:
+	case TypePrintStatement:
 		return "Print"
-	case NTypeAssignmentStatement:
+	case TypeAssignmentStatement:
 		return "Assignment"
-	case NTypeOctothorpeStatement:
+	case TypeOctothorpeStatement:
 		return "Octothorpe"
 	default:
 		return string(rune(sType))

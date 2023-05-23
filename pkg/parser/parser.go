@@ -3,8 +3,8 @@ package parser
 import (
 	"fmt"
 
-	. "github.com/magnetenstad/dragon-compiler/pkg/lexer"
-	. "github.com/magnetenstad/dragon-compiler/pkg/node"
+	"github.com/magnetenstad/dragon-compiler/pkg/ast"
+	"github.com/magnetenstad/dragon-compiler/pkg/lexer"
 )
 
 /*
@@ -13,24 +13,24 @@ import (
 */
 
 type Parser struct {
-	tokens    []Token
+	tokens    []lexer.Token
 	index     int
-	Lookahead Token
-	root      *Node
+	Lookahead lexer.Token
+	root      *ast.Node
 	HasError  bool
 	line      int
 }
 
-func NewParser(tokens []Token) Parser {
+func NewParser(tokens []lexer.Token) Parser {
 	return Parser{
 		tokens: tokens,
 		index:  -1,
-		root:   &Node{},
+		root:   &ast.Node{},
 		line:   1,
 	}
 }
 
-func (parser *Parser) match(TType TokeNType) Token {
+func (parser *Parser) match(TType lexer.TokenType) lexer.Token {
 	token := parser.Lookahead
 
 	if token.Type == TType {
@@ -39,7 +39,7 @@ func (parser *Parser) match(TType TokeNType) Token {
 	}
 
 	parser.panic("match", string(rune(TType)))
-	return Token{}
+	return lexer.Token{}
 }
 
 func (parser *Parser) matchLexeme(Lexeme string) {
@@ -50,7 +50,7 @@ func (parser *Parser) matchLexeme(Lexeme string) {
 	}
 }
 
-func (parser *Parser) matchOptional(TType TokeNType) bool {
+func (parser *Parser) matchOptional(TType lexer.TokenType) bool {
 	if parser.Lookahead.Type == TType {
 		parser.match(TType)
 		return true
@@ -68,32 +68,32 @@ func (parser *Parser) next() bool {
 		return true
 	}
 
-	parser.Lookahead = Token{}
+	parser.Lookahead = lexer.Token{}
 	return false
 }
 
-func (parser *Parser) Parse() *Node {
+func (parser *Parser) Parse() *ast.Node {
 	parser.next()
-	parser.root = parser.matchProgram(&Node{})
+	parser.root = parser.matchProgram(&ast.Node{})
 	parser.root.SetNames()
 
-	if parser.Lookahead.Type != TTypeZero {
+	if parser.Lookahead.Type != lexer.TypeZero {
 		parser.panic("parse", "EOF")
 	}
 
 	return parser.root
 }
 
-func (parser *Parser) matchProgram(parent *Node) *Node {
-	node := Node{Type: NTypeProgram}
+func (parser *Parser) matchProgram(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeProgram}
 
 	node.ParseAsChild(parser.matchBlocks)
 
 	return &node
 }
 
-func (parser *Parser) matchBlocks(parent *Node) *Node {
-	node := Node{Type: NTypeBlocks}
+func (parser *Parser) matchBlocks(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeBlocks}
 
 	for parser.Lookahead.Type == '{' {
 		node.ParseAsChild(parser.matchBlock)
@@ -102,8 +102,8 @@ func (parser *Parser) matchBlocks(parent *Node) *Node {
 	return &node
 }
 
-func (parser *Parser) matchBlock(parent *Node) *Node {
-	node := Node{Type: NTypeBlock}
+func (parser *Parser) matchBlock(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeBlock}
 
 	parser.match('{')
 
@@ -112,9 +112,9 @@ func (parser *Parser) matchBlock(parent *Node) *Node {
 			node.ParseAsChild(parser.matchBlocks)
 			continue
 		}
-		if parser.Lookahead.Type == TTypePrint ||
-			parser.Lookahead.Type == TTypeIdentifier ||
-			parser.Lookahead.Type == TTypeRequire {
+		if parser.Lookahead.Type == lexer.TypePrint ||
+			parser.Lookahead.Type == lexer.TypeIdentifier ||
+			parser.Lookahead.Type == lexer.TypeRequire {
 			node.ParseAsChild(parser.matchStatements)
 			continue
 		}
@@ -123,111 +123,111 @@ func (parser *Parser) matchBlock(parent *Node) *Node {
 
 	parser.match('}')
 
-	parser.handleError(NTypeBlock)
+	parser.handleError(ast.TypeBlock)
 	return &node
 }
 
-func (parser *Parser) matchStatements(parent *Node) *Node {
-	node := Node{Type: NTypeStatements}
+func (parser *Parser) matchStatements(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeStatements}
 
-	for parser.Lookahead.Type == TTypePrint ||
-		parser.Lookahead.Type == TTypeIdentifier ||
-		parser.Lookahead.Type == TTypeRequire {
+	for parser.Lookahead.Type == lexer.TypePrint ||
+		parser.Lookahead.Type == lexer.TypeIdentifier ||
+		parser.Lookahead.Type == lexer.TypeRequire {
 		node.ParseAsChild(parser.matchStatement)
 	}
 	return &node
 }
 
-func (parser *Parser) matchStatement(parent *Node) *Node {
-	node := Node{Type: NTypeStatement}
+func (parser *Parser) matchStatement(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeStatement}
 
 	switch parser.Lookahead.Type {
 
-	case TTypePrint:
+	case lexer.TypePrint:
 		node.ParseAsChild(parser.matchPrintStatement)
 
-	case TTypeIdentifier:
+	case lexer.TypeIdentifier:
 		node.ParseAsChild(parser.matchAssignmentStatement)
 
-	case TTypeRequire:
+	case lexer.TypeRequire:
 		node.ParseAsChild(parser.matchOctothorpeStatement)
 
 	default:
 		parser.panic("matchStatement", "statement")
 	}
 
-	parser.handleError(NTypeStatement)
+	parser.handleError(ast.TypeStatement)
 
 	return &node
 }
 
-func (parser *Parser) matchPrintStatement(parent *Node) *Node {
-	node := Node{Type: NTypePrintStatement}
-	parser.match(TTypePrint)
+func (parser *Parser) matchPrintStatement(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypePrintStatement}
+	parser.match(lexer.TypePrint)
 	node.ParseAsChild(parser.matchExpression)
 	parser.match(';')
 	return &node
 }
 
-func (parser *Parser) matchAssignmentStatement(parent *Node) *Node {
-	node := Node{Type: NTypeAssignmentStatement}
-	token := parser.match(TTypeIdentifier)
-	node.AddChild(&Node{
-		Type:   NTypeIdentifier,
+func (parser *Parser) matchAssignmentStatement(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeAssignmentStatement}
+	token := parser.match(lexer.TypeIdentifier)
+	node.AddChild(&ast.Node{
+		Type:   ast.TypeIdentifier,
 		Lexeme: token.Lexeme,
 	})
-	parser.match(TTypeIs)
+	parser.match(lexer.TypeIs)
 	node.ParseAsChild(parser.matchExpression)
 	parser.match(';')
 	return &node
 }
 
-func (parser *Parser) matchOctothorpeStatement(parent *Node) *Node {
-	node := Node{Type: NTypeOctothorpeStatement}
-	parser.match(TTypeRequire)
+func (parser *Parser) matchOctothorpeStatement(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeOctothorpeStatement}
+	parser.match(lexer.TypeRequire)
 	node.ParseAsChild(parser.matchExpression)
 	parser.match(';')
 	return &node
 }
 
-func (parser *Parser) matchExpression(parent *Node) *Node {
-	node := Node{Type: NTypeExpression}
+func (parser *Parser) matchExpression(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeExpression}
 
 	switch parser.Lookahead.Type {
 
-	case TTypeIdentifier:
-		token := parser.match(TTypeIdentifier)
-		node.AddChild(&Node{
-			Type:   NTypeIdentifier,
+	case lexer.TypeIdentifier:
+		token := parser.match(lexer.TypeIdentifier)
+		node.AddChild(&ast.Node{
+			Type:   ast.TypeIdentifier,
 			Lexeme: token.Lexeme,
 		})
 
-	case TTypeLiteral:
-		token := parser.match(TTypeLiteral)
-		node.AddChild(&Node{
-			Type:   NTypeLiteral,
+	case lexer.TypeLiteral:
+		token := parser.match(lexer.TypeLiteral)
+		node.AddChild(&ast.Node{
+			Type:   ast.TypeLiteral,
 			Lexeme: token.Lexeme,
 		})
 
-	case TTypeNumber:
-		token := parser.match(TTypeNumber)
-		node.AddChild(&Node{
-			Type:   NTypeNumber,
+	case lexer.TypeNumber:
+		token := parser.match(lexer.TypeNumber)
+		node.AddChild(&ast.Node{
+			Type:   ast.TypeNumber,
 			Number: token.Value,
 		})
 
-	case TTypeBoolean:
-		token := parser.match(TTypeBoolean)
-		node.AddChild(&Node{
-			Type:   NTypeBoolean,
+	case lexer.TypeBoolean:
+		token := parser.match(lexer.TypeBoolean)
+		node.AddChild(&ast.Node{
+			Type:   ast.TypeBoolean,
 			Number: token.Value,
 			Lexeme: token.Lexeme,
 		})
 
-	case TTypeNot:
-		token := parser.match(TTypeNot)
-		notNode := &Node{
-			Type:   NTypeNot,
+	case lexer.TypeNot:
+		token := parser.match(lexer.TypeNot)
+		notNode := &ast.Node{
+			Type:   ast.TypeNot,
 			Lexeme: token.Lexeme,
 		}
 		node.AddChild(notNode)
@@ -242,15 +242,15 @@ func (parser *Parser) matchExpression(parent *Node) *Node {
 		parser.panic("matchExpression", "expression")
 	}
 
-	if parser.Lookahead.Type == TTypeOperator {
+	if parser.Lookahead.Type == lexer.TypeOperator {
 		// TODO: Handle operator presedence
-		node.Type = NTypeOperator
+		node.Type = ast.TypeOperator
 		node.Lexeme = parser.Lookahead.Lexeme
-		parser.match(TTypeOperator)
+		parser.match(lexer.TypeOperator)
 		node.ParseAsChild(parser.matchExpression)
 	}
 
-	parser.handleError(NTypeExpression)
+	parser.handleError(ast.TypeExpression)
 
 	return &node
 }
@@ -265,7 +265,7 @@ func (parser *Parser) panic(where string, expected string) {
 	parser.HasError = true
 }
 
-func (parser *Parser) handleError(NType NodeType) {
+func (parser *Parser) handleError(NType ast.NodeType) {
 	if !parser.HasError {
 		return
 	}
@@ -274,19 +274,19 @@ func (parser *Parser) handleError(NType NodeType) {
 	for {
 		tokeNType := parser.Lookahead.Type
 		switch NType {
-		case NTypeExpression:
-			if tokeNType == TTypePrint ||
-				tokeNType == TTypeIdentifier {
+		case ast.TypeExpression:
+			if tokeNType == lexer.TypePrint ||
+				tokeNType == lexer.TypeIdentifier {
 				return
 			}
 			if tokeNType == ';' {
 				parser.next()
 				return
 			}
-		case NTypeStatement:
+		case ast.TypeStatement:
 			if tokeNType == '{' ||
-				tokeNType == TTypePrint ||
-				tokeNType == TTypeIdentifier {
+				tokeNType == lexer.TypePrint ||
+				tokeNType == lexer.TypeIdentifier {
 				return
 			}
 			if tokeNType == ';' {
@@ -294,7 +294,7 @@ func (parser *Parser) handleError(NType NodeType) {
 				return
 			}
 
-		case NTypeBlock:
+		case ast.TypeBlock:
 			if tokeNType == '{' {
 				return
 			}

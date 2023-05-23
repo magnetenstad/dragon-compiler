@@ -1,34 +1,34 @@
 package env
 
 import (
-	. "github.com/magnetenstad/dragon-compiler/pkg/node"
+	"github.com/magnetenstad/dragon-compiler/pkg/ast"
 )
 
 type Symbol struct {
-	lexeme     string
-	symbolType NodeType
+	Lexeme     string
+	SymbolType ast.NodeType
 }
 
 type Env struct {
-	table map[string]Symbol
-	prev  *Env
+	Table map[string]Symbol
+	Prev  *Env
 }
 
-func newEnv(prev *Env) Env {
+func NewEnv(prev *Env) Env {
 	env := Env{
-		table: make(map[string]Symbol),
-		prev:  prev,
+		Table: make(map[string]Symbol),
+		Prev:  prev,
 	}
 	return env
 }
 
-func (env Env) put(symbol Symbol) {
-	env.table[symbol.lexeme] = symbol
+func (env Env) Put(symbol Symbol) {
+	env.Table[symbol.Lexeme] = symbol
 }
 
-func (env Env) get(key string) (Symbol, bool) {
-	for e := &env; e != nil; e = e.prev {
-		symbol, ok := e.table[key]
+func (env Env) Get(key string) (Symbol, bool) {
+	for e := &env; e != nil; e = e.Prev {
+		symbol, ok := e.Table[key]
 		if ok {
 			return symbol, true
 		}

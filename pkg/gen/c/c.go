@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	. "github.com/magnetenstad/dragon-compiler/pkg/node"
+	"github.com/magnetenstad/dragon-compiler/pkg/ast"
 )
 
 type Context struct {
@@ -13,7 +13,7 @@ type Context struct {
 	sb    *strings.Builder
 }
 
-func GenerateCProgram(node *Node) string {
+func GenerateCProgram(node *ast.Node) string {
 	var sb strings.Builder
 	ctx := Context{
 		sb: &sb,
@@ -22,11 +22,11 @@ func GenerateCProgram(node *Node) string {
 	return ctx.sb.String()
 }
 
-func generateC(node *Node, ctx *Context) {
+func generateC(node *ast.Node, ctx *Context) {
 
 	switch node.Type {
 
-	case NTypeProgram:
+	case ast.TypeProgram:
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("#include <stdio.h>\n\n")
 		ctx.sb.WriteString("int main(int argc, char *argv[]) {\n")
@@ -38,7 +38,7 @@ func generateC(node *Node, ctx *Context) {
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("}\n")
 
-	case NTypeBlock:
+	case ast.TypeBlock:
 		ctx.block += 1
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString(fmt.Sprintf("__StartBlock__%d: {\n", ctx.block))
@@ -53,56 +53,56 @@ func generateC(node *Node, ctx *Context) {
 		ctx.sb.WriteString(fmt.Sprintf("__EndBlock__%d: {}\n", ctx.block))
 		ctx.block -= 1
 
-	case NTypeBlocks:
+	case ast.TypeBlocks:
 		fallthrough
-	case NTypeStatements:
+	case ast.TypeStatements:
 		fallthrough
-	case NTypeStatement:
+	case ast.TypeStatement:
 		for _, child := range node.Children {
 			generateC(child, ctx)
 		}
 
-	case NTypePrintStatement:
+	case ast.TypePrintStatement:
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("printf(")
 		generateC(node.Children[0], ctx)
 		ctx.sb.WriteString(");\n")
 
-	case NTypeAssignmentStatement:
+	case ast.TypeAssignmentStatement:
 		writeTabs(ctx, ctx.tabs) // TODO: handle identifiers and types
 		ctx.sb.WriteString(fmt.Sprintf("int %s = ", node.Children[0].Lexeme))
 		generateC(node.Children[1], ctx)
 		ctx.sb.WriteString(";\n")
 
-	case NTypeOctothorpeStatement:
+	case ast.TypeOctothorpeStatement:
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("if (!(")
 		generateC(node.Children[0], ctx)
 		ctx.sb.WriteString(fmt.Sprintf(")) goto __EndBlock__%d;\n", ctx.block))
 
-	case NTypeExpression:
+	case ast.TypeExpression:
 		generateC(node.Children[0], ctx)
 
-	case NTypeOperator:
+	case ast.TypeOperator:
 		ctx.sb.WriteString("(")
 		generateC(node.Children[0], ctx)
 		ctx.sb.WriteString(node.Lexeme)
 		generateC(node.Children[1], ctx)
 		ctx.sb.WriteString(")")
 
-	case NTypeLiteral:
+	case ast.TypeLiteral:
 		ctx.sb.WriteString(fmt.Sprintf("\"%s\"", node.Lexeme))
 
-	case NTypeNumber:
+	case ast.TypeNumber:
 		ctx.sb.WriteString(fmt.Sprintf("%d", node.Number))
 
-	case NTypeBoolean:
+	case ast.TypeBoolean:
 		ctx.sb.WriteString(fmt.Sprintf("%d", node.Number))
 
-	case NTypeIdentifier:
+	case ast.TypeIdentifier:
 		ctx.sb.WriteString(node.Lexeme) // TODO: handle identifiers
 
-	case NTypeNot:
+	case ast.TypeNot:
 		ctx.sb.WriteString("!(")
 		generateC(node.Children[0], ctx)
 		ctx.sb.WriteString(")")
