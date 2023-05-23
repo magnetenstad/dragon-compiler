@@ -265,40 +265,40 @@ func (parser *Parser) panic(where string, expected string) {
 	parser.HasError = true
 }
 
-func (parser *Parser) handleError(NType ast.NodeType) {
+func (parser *Parser) handleError(nType ast.NodeType) {
 	if !parser.HasError {
 		return
 	}
 	parser.HasError = false
 	// try to synchronize
 	for {
-		tokeNType := parser.Lookahead.Type
-		switch NType {
+		tokenType := parser.Lookahead.Type
+		switch nType {
 		case ast.TypeExpression:
-			if tokeNType == lexer.TypePrint ||
-				tokeNType == lexer.TypeIdentifier {
+			if tokenType == lexer.TypePrint ||
+				tokenType == lexer.TypeIdentifier {
 				return
 			}
-			if tokeNType == ';' {
+			if tokenType == ';' {
 				parser.next()
 				return
 			}
 		case ast.TypeStatement:
-			if tokeNType == '{' ||
-				tokeNType == lexer.TypePrint ||
-				tokeNType == lexer.TypeIdentifier {
+			if tokenType == '{' ||
+				tokenType == lexer.TypePrint ||
+				tokenType == lexer.TypeIdentifier {
 				return
 			}
-			if tokeNType == ';' {
+			if tokenType == ';' {
 				parser.next()
 				return
 			}
 
 		case ast.TypeBlock:
-			if tokeNType == '{' {
+			if tokenType == '{' {
 				return
 			}
-			if tokeNType == '}' {
+			if tokenType == '}' {
 				parser.next()
 				return
 			}
