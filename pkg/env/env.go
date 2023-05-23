@@ -10,25 +10,25 @@ type Symbol struct {
 }
 
 type Env struct {
-	Table map[string]Symbol
-	Prev  *Env
+	table map[string]Symbol
+	prev  *Env
 }
 
 func NewEnv(prev *Env) Env {
 	env := Env{
-		Table: make(map[string]Symbol),
-		Prev:  prev,
+		table: make(map[string]Symbol),
+		prev:  prev,
 	}
 	return env
 }
 
 func (env Env) Put(symbol Symbol) {
-	env.Table[symbol.Lexeme] = symbol
+	env.table[symbol.Lexeme] = symbol
 }
 
 func (env Env) Get(key string) (Symbol, bool) {
-	for e := &env; e != nil; e = e.Prev {
-		symbol, ok := e.Table[key]
+	for e := &env; e != nil; e = e.prev {
+		symbol, ok := e.table[key]
 		if ok {
 			return symbol, true
 		}

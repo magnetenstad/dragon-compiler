@@ -33,18 +33,18 @@ type Token struct {
 }
 
 type Lexer struct {
-	Line    int
-	Peek    rune
+	line    int
+	peek    rune
 	Lexemes map[string]Token
-	Reader  io.RuneReader
+	reader  io.RuneReader
 }
 
 func NewLexer(reader io.RuneReader) Lexer {
 	lexer := Lexer{
-		Line:    1,
-		Peek:    ' ',
+		line:    1,
+		peek:    ' ',
 		Lexemes: make(map[string]Token),
-		Reader:  reader,
+		reader:  reader,
 	}
 	lexer.reserve(Token{Type: TypeBoolean, Value: 1, Lexeme: "true"})
 	lexer.reserve(Token{Type: TypeBoolean, Value: 0, Lexeme: "false"})
@@ -60,25 +60,25 @@ func (lexer *Lexer) reserve(token Token) {
 }
 
 func (lexer *Lexer) peekNext() error {
-	peek, _, err := lexer.Reader.ReadRune()
+	peek, _, err := lexer.reader.ReadRune()
 	if err != nil {
-		lexer.Peek = ' '
+		lexer.peek = ' '
 		return err
 	}
-	lexer.Peek = peek
+	lexer.peek = peek
 	return nil
 }
 
 func (lexer *Lexer) scan() (*Token, error) {
 	var err error = nil
 	for ; err == nil; err = lexer.peekNext() {
-		if lexer.Peek == '\n' {
-			lexer.Line += 1
+		if lexer.peek == '\n' {
+			lexer.line += 1
 			continue
 		}
-		if lexer.Peek == ' ' ||
-			lexer.Peek == '\t' ||
-			lexer.Peek == '\r' {
+		if lexer.peek == ' ' ||
+			lexer.peek == '\t' ||
+			lexer.peek == '\r' {
 			continue
 		}
 		break
@@ -89,19 +89,19 @@ func (lexer *Lexer) scan() (*Token, error) {
 	}
 
 	token := Token{
-		Type:   TokenType(lexer.Peek),
-		Lexeme: string(lexer.Peek),
+		Type:   TokenType(lexer.peek),
+		Lexeme: string(lexer.peek),
 		Position: Position{
-			Line: lexer.Line,
+			Line: lexer.line,
 		},
 	}
 
-	if lexer.Peek == '"' {
+	if lexer.peek == '"' {
 		var sb strings.Builder
 
 		lexer.peekNext()
-		for lexer.Peek != '"' {
-			sb.WriteRune(lexer.Peek)
+		for lexer.peek != '"' {
+			sb.WriteRune(lexer.peek)
 			if lexer.peekNext() != nil {
 				panic("unclosed string")
 			}
@@ -115,11 +115,11 @@ func (lexer *Lexer) scan() (*Token, error) {
 		return &token, nil
 	}
 
-	if unicode.IsDigit(lexer.Peek) {
+	if unicode.IsDigit(lexer.peek) {
 		value := 0
 
-		for unicode.IsDigit(lexer.Peek) {
-			value = value*10 + (int(lexer.Peek) - '0')
+		for unicode.IsDigit(lexer.peek) {
+			value = value*10 + (int(lexer.peek) - '0')
 			lexer.peekNext()
 		}
 
@@ -128,11 +128,11 @@ func (lexer *Lexer) scan() (*Token, error) {
 		return &token, nil
 	}
 
-	if unicode.IsLetter(lexer.Peek) {
+	if unicode.IsLetter(lexer.peek) {
 		var sb strings.Builder
 
-		for unicode.IsLetter(lexer.Peek) {
-			sb.WriteRune(lexer.Peek)
+		for unicode.IsLetter(lexer.peek) {
+			sb.WriteRune(lexer.peek)
 			lexer.peekNext()
 		}
 
@@ -152,12 +152,12 @@ func (lexer *Lexer) scan() (*Token, error) {
 		return &token, nil
 	}
 
-	if isOperator(lexer.Peek) {
+	if isOperator(lexer.peek) {
 		// Copy paste of above
 		var sb strings.Builder
 
-		for isOperator(lexer.Peek) {
-			sb.WriteRune(lexer.Peek)
+		for isOperator(lexer.peek) {
+			sb.WriteRune(lexer.peek)
 			lexer.peekNext()
 		}
 
@@ -169,7 +169,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 		return &token, nil
 	}
 
-	lexer.Peek = ' '
+	lexer.peek = ' '
 	return &token, nil
 }
 
