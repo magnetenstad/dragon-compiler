@@ -2,7 +2,7 @@ package main
 
 type Symbol struct {
 	lexeme     string
-	symbolType SymbolType
+	symbolType NodeType
 }
 
 type Env struct {
