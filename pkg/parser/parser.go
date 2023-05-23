@@ -1,7 +1,9 @@
-package main
+package parser
 
 import (
 	"fmt"
+	"github.com/magnetenstad/dragon-compiler/pkg/node"
+	"github.com/magnetenstad/dragon-compiler/pkg/lexer"
 )
 
 /*

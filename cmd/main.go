@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"github.com/magnetenstad/dragon-compiler/pkg/error"
+	"github.com/magnetenstad/dragon-compiler/pkg/gen"
+	"github.com/magnetenstad/dragon-compiler/pkg/lexer"
+	"github.com/magnetenstad/dragon-compiler/pkg/parser"
 )
 
 func main() {
@@ -37,6 +41,12 @@ func main() {
 	defer file.Close()
 	output := generateCProgram(root)
 	file.WriteString(output)
+
+	// file, err = os.Create("assets/basic.wast")
+	// check(err)
+	// defer file.Close()
+	// output = generateWasmProgram(root)
+	// file.WriteString(output)
 
 }
 

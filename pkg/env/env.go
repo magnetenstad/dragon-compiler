@@ -1,4 +1,8 @@
-package main
+package env
+
+import (
+	"github.com/magnetenstad/dragon-compiler/pkg/node"
+)
 
 type Symbol struct {
 	lexeme     string

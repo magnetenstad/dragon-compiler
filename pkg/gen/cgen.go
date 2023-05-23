@@ -1,8 +1,9 @@
-package main
+package cgen
 
 import (
 	"fmt"
 	"strings"
+	"github.com/magnetenstad/dragon-compiler/pkg/node"
 )
 
 type Context struct {
