@@ -5,45 +5,46 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"github.com/magnetenstad/dragon-compiler/pkg/error"
-	"github.com/magnetenstad/dragon-compiler/pkg/gen"
-	"github.com/magnetenstad/dragon-compiler/pkg/lexer"
-	"github.com/magnetenstad/dragon-compiler/pkg/parser"
+
+	. "github.com/magnetenstad/dragon-compiler/pkg/error"
+	. "github.com/magnetenstad/dragon-compiler/pkg/gen/c"
+	. "github.com/magnetenstad/dragon-compiler/pkg/lexer"
+	. "github.com/magnetenstad/dragon-compiler/pkg/parser"
 )
 
 func main() {
 
 	file, err := os.Open("assets/basic.bip")
-	check(err)
+	Check(err)
 	defer file.Close()
 
 	reader := bufio.NewReader(file)
-	lexer := newLexer(reader)
-	tokens := lexer.scanAll()
+	lexer := NewLexer(reader)
+	tokens := lexer.ScanAll()
 
 	fmt.Println()
 	fmt.Println(tokens)
 	fmt.Println()
-	fmt.Println(lexer.lexemes)
+	fmt.Println(lexer.Lexemes)
 	fmt.Println()
 
-	parser := newParser(tokens)
-	root := parser.parse()
+	parser := NewParser(tokens)
+	root := parser.Parse()
 	fmt.Println(root)
 
 	file, err = os.Create("assets/basic.ast")
-	check(err)
+	Check(err)
 	defer file.Close()
 	file.Write(toJson(root))
 
 	file, err = os.Create("assets/basic.c")
-	check(err)
+	Check(err)
 	defer file.Close()
-	output := generateCProgram(root)
+	output := GenerateCProgram(root)
 	file.WriteString(output)
 
 	// file, err = os.Create("assets/basic.wast")
-	// check(err)
+	// Check(err)
 	// defer file.Close()
 	// output = generateWasmProgram(root)
 	// file.WriteString(output)

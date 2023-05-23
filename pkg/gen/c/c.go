@@ -1,9 +1,10 @@
-package cgen
+package c
 
 import (
 	"fmt"
 	"strings"
-	"github.com/magnetenstad/dragon-compiler/pkg/node"
+
+	. "github.com/magnetenstad/dragon-compiler/pkg/node"
 )
 
 type Context struct {
@@ -12,7 +13,7 @@ type Context struct {
 	sb    *strings.Builder
 }
 
-func generateCProgram(node *Node) string {
+func GenerateCProgram(node *Node) string {
 	var sb strings.Builder
 	ctx := Context{
 		sb: &sb,
@@ -25,7 +26,7 @@ func generateC(node *Node, ctx *Context) {
 
 	switch node.Type {
 
-	case nTypeProgram:
+	case NTypeProgram:
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("#include <stdio.h>\n\n")
 		ctx.sb.WriteString("int main(int argc, char *argv[]) {\n")
@@ -37,7 +38,7 @@ func generateC(node *Node, ctx *Context) {
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("}\n")
 
-	case nTypeBlock:
+	case NTypeBlock:
 		ctx.block += 1
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString(fmt.Sprintf("__StartBlock__%d: {\n", ctx.block))
@@ -52,56 +53,56 @@ func generateC(node *Node, ctx *Context) {
 		ctx.sb.WriteString(fmt.Sprintf("__EndBlock__%d: {}\n", ctx.block))
 		ctx.block -= 1
 
-	case nTypeBlocks:
+	case NTypeBlocks:
 		fallthrough
-	case nTypeStatements:
+	case NTypeStatements:
 		fallthrough
-	case nTypeStatement:
+	case NTypeStatement:
 		for _, child := range node.Children {
 			generateC(child, ctx)
 		}
 
-	case nTypePrintStatement:
+	case NTypePrintStatement:
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("printf(")
 		generateC(node.Children[0], ctx)
 		ctx.sb.WriteString(");\n")
 
-	case nTypeAssignmentStatement:
+	case NTypeAssignmentStatement:
 		writeTabs(ctx, ctx.tabs) // TODO: handle identifiers and types
 		ctx.sb.WriteString(fmt.Sprintf("int %s = ", node.Children[0].Lexeme))
 		generateC(node.Children[1], ctx)
 		ctx.sb.WriteString(";\n")
 
-	case nTypeOctothorpeStatement:
+	case NTypeOctothorpeStatement:
 		writeTabs(ctx, ctx.tabs)
 		ctx.sb.WriteString("if (!(")
 		generateC(node.Children[0], ctx)
 		ctx.sb.WriteString(fmt.Sprintf(")) goto __EndBlock__%d;\n", ctx.block))
 
-	case nTypeExpression:
+	case NTypeExpression:
 		generateC(node.Children[0], ctx)
 
-	case nTypeOperator:
+	case NTypeOperator:
 		ctx.sb.WriteString("(")
 		generateC(node.Children[0], ctx)
 		ctx.sb.WriteString(node.Lexeme)
 		generateC(node.Children[1], ctx)
 		ctx.sb.WriteString(")")
 
-	case nTypeLiteral:
+	case NTypeLiteral:
 		ctx.sb.WriteString(fmt.Sprintf("\"%s\"", node.Lexeme))
 
-	case nTypeNumber:
+	case NTypeNumber:
 		ctx.sb.WriteString(fmt.Sprintf("%d", node.Number))
 
-	case nTypeBoolean:
+	case NTypeBoolean:
 		ctx.sb.WriteString(fmt.Sprintf("%d", node.Number))
 
-	case nTypeIdentifier:
+	case NTypeIdentifier:
 		ctx.sb.WriteString(node.Lexeme) // TODO: handle identifiers
 
-	case nTypeNot:
+	case NTypeNot:
 		ctx.sb.WriteString("!(")
 		generateC(node.Children[0], ctx)
 		ctx.sb.WriteString(")")

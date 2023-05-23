@@ -1,7 +1,7 @@
 package env
 
 import (
-	"github.com/magnetenstad/dragon-compiler/pkg/node"
+	. "github.com/magnetenstad/dragon-compiler/pkg/node"
 )
 
 type Symbol struct {

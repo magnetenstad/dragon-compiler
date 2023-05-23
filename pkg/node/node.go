@@ -8,71 +8,71 @@ type Node struct {
 	Children []*Node
 }
 
-func (node *Node) addChild(child *Node) {
+func (node *Node) AddChild(child *Node) {
 	node.Children = append(node.Children, child)
 }
 
-func (parent *Node) parseAsChild(fn func(*Node) *Node) {
-	parent.addChild(fn(parent))
+func (parent *Node) ParseAsChild(fn func(*Node) *Node) {
+	parent.AddChild(fn(parent))
 }
 
-func (node *Node) setNames() {
+func (node *Node) SetNames() {
 	node.Name = node.Type.name()
 	for _, child := range node.Children {
-		child.setNames()
+		child.SetNames()
 	}
 }
 
 type NodeType int
 
 const (
-	nTypeZero       NodeType = 0
-	nTypeIdentifier          = iota + 256
-	nTypeLiteral
-	nTypeNumber
-	nTypeBoolean
-	nTypeOperator
-	nTypeProgram
-	nTypeBlocks
-	nTypeBlock
-	nTypeStatements
-	nTypeStatement
-	nTypeExpression
-	nTypePrintStatement
-	nTypeOctothorpeStatement
-	nTypeAssignmentStatement
-	nTypeNot
+	NTypeZero       NodeType = 0
+	NTypeIdentifier          = iota + 256
+	NTypeLiteral
+	NTypeNumber
+	NTypeBoolean
+	NTypeOperator
+	NTypeProgram
+	NTypeBlocks
+	NTypeBlock
+	NTypeStatements
+	NTypeStatement
+	NTypeExpression
+	NTypePrintStatement
+	NTypeOctothorpeStatement
+	NTypeAssignmentStatement
+	NTypeNot
 )
 
 func (sType NodeType) name() string {
 	switch sType {
-	case nTypeZero:
+	case NTypeZero:
 		return "Zero"
-	case nTypeNumber:
+	case NTypeNumber:
 		return "Number"
-	case nTypeIdentifier:
+	case NTypeIdentifier:
 		return "Identifier"
-	case nTypeLiteral:
+	case NTypeLiteral:
 		return "Literal"
-	case nTypeOperator:
+	case NTypeOperator:
 		return "Operator"
-	case nTypeProgram:
+	case NTypeProgram:
 		return "Program"
-	case nTypeBlocks:
+	case NTypeBlocks:
 		return "Blocks"
-	case nTypeBlock:
+	case NTypeBlock:
 		return "Block"
-	case nTypeStatements:
+	case NTypeStatements:
 		return "Statements"
-	case nTypeStatement:
+	case NTypeStatement:
 		return "Statement"
-	case nTypeExpression:
+	case NTypeExpression:
 		return "Expression"
-	case nTypePrintStatement:
+	case NTypePrintStatement:
 		return "Print"
-	case nTypeAssignmentStatement:
+	case NTypeAssignmentStatement:
 		return "Assignment"
-	case nTypeOctothorpeStatement:
+	case NTypeOctothorpeStatement:
 		return "Octothorpe"
 	default:
 		return string(rune(sType))

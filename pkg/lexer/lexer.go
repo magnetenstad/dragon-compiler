@@ -6,79 +6,79 @@ import (
 	"unicode"
 )
 
-type TokenType int
+type TokeNType int
 
 const (
-	tTypeZero       TokenType = 0
-	tTypeIdentifier           = iota + 256
-	tTypeLiteral
-	tTypeNumber
-	tTypeBoolean
-	tTypeOperator
-	tTypePrint
-	tTypeRequire
-	tTypeIs
-	tTypeNot
+	TTypeZero       TokeNType = 0
+	TTypeIdentifier           = iota + 256
+	TTypeLiteral
+	TTypeNumber
+	TTypeBoolean
+	TTypeOperator
+	TTypePrint
+	TTypeRequire
+	TTypeIs
+	TTypeNot
 )
 
 type Position struct {
-	line int
+	Line int
 }
 
 type Token struct {
-	Type     TokenType
-	value    int
-	lexeme   string
-	position Position
+	Type     TokeNType
+	Value    int
+	Lexeme   string
+	Position Position
 }
 
 type Lexer struct {
-	line    int
-	peek    rune
-	lexemes map[string]Token
-	reader  io.RuneReader
+	Line    int
+	Peek    rune
+	Lexemes map[string]Token
+	Reader  io.RuneReader
 }
 
-func newLexer(reader io.RuneReader) Lexer {
+func NewLexer(reader io.RuneReader) Lexer {
 	lexer := Lexer{
-		line:    1,
-		peek:    ' ',
-		lexemes: make(map[string]Token),
-		reader:  reader,
+		Line:    1,
+		Peek:    ' ',
+		Lexemes: make(map[string]Token),
+		Reader:  reader,
 	}
-	lexer.reserve(Token{Type: tTypeBoolean, value: 1, lexeme: "true"})
-	lexer.reserve(Token{Type: tTypeBoolean, value: 0, lexeme: "false"})
-	lexer.reserve(Token{Type: tTypePrint, lexeme: "print"})
-	lexer.reserve(Token{Type: tTypeRequire, lexeme: "require"})
-	lexer.reserve(Token{Type: tTypeIs, lexeme: "is"})
-	lexer.reserve(Token{Type: tTypeNot, lexeme: "not"})
+	lexer.reserve(Token{Type: TTypeBoolean, Value: 1, Lexeme: "true"})
+	lexer.reserve(Token{Type: TTypeBoolean, Value: 0, Lexeme: "false"})
+	lexer.reserve(Token{Type: TTypePrint, Lexeme: "print"})
+	lexer.reserve(Token{Type: TTypeRequire, Lexeme: "require"})
+	lexer.reserve(Token{Type: TTypeIs, Lexeme: "is"})
+	lexer.reserve(Token{Type: TTypeNot, Lexeme: "not"})
 	return lexer
 }
 
 func (lexer *Lexer) reserve(token Token) {
-	lexer.lexemes[token.lexeme] = token
+	lexer.Lexemes[token.Lexeme] = token
 }
 
 func (lexer *Lexer) peekNext() error {
-	peek, _, err := lexer.reader.ReadRune()
+	peek, _, err := lexer.Reader.ReadRune()
 	if err != nil {
-		lexer.peek = ' '
+		lexer.Peek = ' '
 		return err
 	}
-	lexer.peek = peek
+	lexer.Peek = peek
 	return nil
 }
 
 func (lexer *Lexer) scan() (*Token, error) {
 	var err error = nil
 	for ; err == nil; err = lexer.peekNext() {
-		if lexer.peek == '\n' {
-			lexer.line += 1
+		if lexer.Peek == '\n' {
+			lexer.Line += 1
 			continue
 		}
-		if lexer.peek == ' ' ||
-			lexer.peek == '\t' ||
-			lexer.peek == '\r' {
+		if lexer.Peek == ' ' ||
+			lexer.Peek == '\t' ||
+			lexer.Peek == '\r' {
 			continue
 		}
 		break
@@ -89,19 +89,19 @@ func (lexer *Lexer) scan() (*Token, error) {
 	}
 
 	token := Token{
-		Type:   TokenType(lexer.peek),
-		lexeme: string(lexer.peek),
-		position: Position{
-			line: lexer.line,
+		Type:   TokeNType(lexer.Peek),
+		Lexeme: string(lexer.Peek),
+		Position: Position{
+			Line: lexer.Line,
 		},
 	}
 
-	if lexer.peek == '"' {
+	if lexer.Peek == '"' {
 		var sb strings.Builder
 
 		lexer.peekNext()
-		for lexer.peek != '"' {
-			sb.WriteRune(lexer.peek)
+		for lexer.Peek != '"' {
+			sb.WriteRune(lexer.Peek)
 			if lexer.peekNext() != nil {
 				panic("unclosed string")
 			}
@@ -110,41 +110,41 @@ func (lexer *Lexer) scan() (*Token, error) {
 
 		lexeme := sb.String()
 
-		token.Type = tTypeLiteral
-		token.lexeme = lexeme
+		token.Type = TTypeLiteral
+		token.Lexeme = lexeme
 		return &token, nil
 	}
 
-	if unicode.IsDigit(lexer.peek) {
+	if unicode.IsDigit(lexer.Peek) {
 		value := 0
 
-		for unicode.IsDigit(lexer.peek) {
-			value = value*10 + (int(lexer.peek) - '0')
+		for unicode.IsDigit(lexer.Peek) {
+			value = value*10 + (int(lexer.Peek) - '0')
 			lexer.peekNext()
 		}
 
-		token.Type = tTypeNumber
-		token.value = value
+		token.Type = TTypeNumber
+		token.Value = value
 		return &token, nil
 	}
 
-	if unicode.IsLetter(lexer.peek) {
+	if unicode.IsLetter(lexer.Peek) {
 		var sb strings.Builder
 
-		for unicode.IsLetter(lexer.peek) {
-			sb.WriteRune(lexer.peek)
+		for unicode.IsLetter(lexer.Peek) {
+			sb.WriteRune(lexer.Peek)
 			lexer.peekNext()
 		}
 
 		lexeme := sb.String()
-		token.Type = tTypeIdentifier
-		token.lexeme = lexeme
+		token.Type = TTypeIdentifier
+		token.Lexeme = lexeme
 
-		existingToken, exists := lexer.lexemes[lexeme]
+		existingToken, exists := lexer.Lexemes[lexeme]
 		if exists {
 			token.Type = existingToken.Type
-			token.lexeme = existingToken.lexeme
-			token.value = existingToken.value
+			token.Lexeme = existingToken.Lexeme
+			token.Value = existingToken.Value
 		}
 
 		lexer.reserve(token)
@@ -152,28 +152,28 @@ func (lexer *Lexer) scan() (*Token, error) {
 		return &token, nil
 	}
 
-	if isOperator(lexer.peek) {
+	if isOperator(lexer.Peek) {
 		// Copy paste of above
 		var sb strings.Builder
 
-		for isOperator(lexer.peek) {
-			sb.WriteRune(lexer.peek)
+		for isOperator(lexer.Peek) {
+			sb.WriteRune(lexer.Peek)
 			lexer.peekNext()
 		}
 
 		lexeme := sb.String()
-		token.Type = tTypeOperator
-		token.lexeme = lexeme
+		token.Type = TTypeOperator
+		token.Lexeme = lexeme
 		lexer.reserve(token)
 
 		return &token, nil
 	}
 
-	lexer.peek = ' '
+	lexer.Peek = ' '
 	return &token, nil
 }
 
-func (lexer *Lexer) scanAll() []Token {
+func (lexer *Lexer) ScanAll() []Token {
 	var tokens []Token
 	for {
 		token, err := lexer.scan()

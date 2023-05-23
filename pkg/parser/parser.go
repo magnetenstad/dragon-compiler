@@ -2,8 +2,9 @@ package parser
 
 import (
 	"fmt"
-	"github.com/magnetenstad/dragon-compiler/pkg/node"
-	"github.com/magnetenstad/dragon-compiler/pkg/lexer"
+
+	. "github.com/magnetenstad/dragon-compiler/pkg/lexer"
+	. "github.com/magnetenstad/dragon-compiler/pkg/node"
 )
 
 /*
@@ -14,13 +15,13 @@ import (
 type Parser struct {
 	tokens    []Token
 	index     int
-	lookahead Token
+	Lookahead Token
 	root      *Node
-	hasError  bool
+	HasError  bool
 	line      int
 }
 
-func newParser(tokens []Token) Parser {
+func NewParser(tokens []Token) Parser {
 	return Parser{
 		tokens: tokens,
 		index:  -1,
@@ -29,54 +30,54 @@ func newParser(tokens []Token) Parser {
 	}
 }
 
-func (parser *Parser) match(tType TokenType) Token {
-	token := parser.lookahead
+func (parser *Parser) match(TType TokeNType) Token {
+	token := parser.Lookahead
 
-	if token.Type == tType {
+	if token.Type == TType {
 		parser.next()
 		return token
 	}
 
-	parser.panic("match", string(rune(tType)))
+	parser.panic("match", string(rune(TType)))
 	return Token{}
 }
 
-func (parser *Parser) matchLexeme(lexeme string) {
-	if parser.lookahead.lexeme == lexeme {
+func (parser *Parser) matchLexeme(Lexeme string) {
+	if parser.Lookahead.Lexeme == Lexeme {
 		parser.next()
 	} else {
-		parser.panic("matchLexeme", parser.lookahead.lexeme)
+		parser.panic("matchLexeme", parser.Lookahead.Lexeme)
 	}
 }
 
-// func (parser *Parser) matchOptional(tType TokenType) bool {
-// 	if parser.lookahead.tType == tType {
-// 		parser.match(tType)
-// 		return true
-// 	}
-
-// 	return false
-// }
-
-func (parser *Parser) next() bool {
-	parser.line = parser.lookahead.position.line
-
-	if parser.index < len(parser.tokens)-1 {
-		parser.index += 1
-		parser.lookahead = parser.tokens[parser.index]
+func (parser *Parser) matchOptional(TType TokeNType) bool {
+	if parser.Lookahead.Type == TType {
+		parser.match(TType)
 		return true
 	}
 
-	parser.lookahead = Token{}
 	return false
 }
 
-func (parser *Parser) parse() *Node {
+func (parser *Parser) next() bool {
+	parser.line = parser.Lookahead.Position.Line
+
+	if parser.index < len(parser.tokens)-1 {
+		parser.index += 1
+		parser.Lookahead = parser.tokens[parser.index]
+		return true
+	}
+
+	parser.Lookahead = Token{}
+	return false
+}
+
+func (parser *Parser) Parse() *Node {
 	parser.next()
 	parser.root = parser.matchProgram(&Node{})
-	parser.root.setNames()
+	parser.root.SetNames()
 
-	if parser.lookahead.Type != tTypeZero {
+	if parser.Lookahead.Type != TTypeZero {
 		parser.panic("parse", "EOF")
 	}
 
@@ -84,37 +85,37 @@ func (parser *Parser) parse() *Node {
 }
 
 func (parser *Parser) matchProgram(parent *Node) *Node {
-	node := Node{Type: nTypeProgram}
+	node := Node{Type: NTypeProgram}
 
-	node.parseAsChild(parser.matchBlocks)
+	node.ParseAsChild(parser.matchBlocks)
 
 	return &node
 }
 
 func (parser *Parser) matchBlocks(parent *Node) *Node {
-	node := Node{Type: nTypeBlocks}
+	node := Node{Type: NTypeBlocks}
 
-	for parser.lookahead.Type == '{' {
-		node.parseAsChild(parser.matchBlock)
+	for parser.Lookahead.Type == '{' {
+		node.ParseAsChild(parser.matchBlock)
 	}
 
 	return &node
 }
 
 func (parser *Parser) matchBlock(parent *Node) *Node {
-	node := Node{Type: nTypeBlock}
+	node := Node{Type: NTypeBlock}
 
 	parser.match('{')
 
 	for {
-		if parser.lookahead.Type == '{' {
-			node.parseAsChild(parser.matchBlocks)
+		if parser.Lookahead.Type == '{' {
+			node.ParseAsChild(parser.matchBlocks)
 			continue
 		}
-		if parser.lookahead.Type == tTypePrint ||
-			parser.lookahead.Type == tTypeIdentifier ||
-			parser.lookahead.Type == tTypeRequire {
-			node.parseAsChild(parser.matchStatements)
+		if parser.Lookahead.Type == TTypePrint ||
+			parser.Lookahead.Type == TTypeIdentifier ||
+			parser.Lookahead.Type == TTypeRequire {
+			node.ParseAsChild(parser.matchStatements)
 			continue
 		}
 		break
@@ -122,134 +123,134 @@ func (parser *Parser) matchBlock(parent *Node) *Node {
 
 	parser.match('}')
 
-	parser.handleError(nTypeBlock)
+	parser.handleError(NTypeBlock)
 	return &node
 }
 
 func (parser *Parser) matchStatements(parent *Node) *Node {
-	node := Node{Type: nTypeStatements}
+	node := Node{Type: NTypeStatements}
 
-	for parser.lookahead.Type == tTypePrint ||
-		parser.lookahead.Type == tTypeIdentifier ||
-		parser.lookahead.Type == tTypeRequire {
-		node.parseAsChild(parser.matchStatement)
+	for parser.Lookahead.Type == TTypePrint ||
+		parser.Lookahead.Type == TTypeIdentifier ||
+		parser.Lookahead.Type == TTypeRequire {
+		node.ParseAsChild(parser.matchStatement)
 	}
 	return &node
 }
 
 func (parser *Parser) matchStatement(parent *Node) *Node {
-	node := Node{Type: nTypeStatement}
+	node := Node{Type: NTypeStatement}
 
-	switch parser.lookahead.Type {
+	switch parser.Lookahead.Type {
 
-	case tTypePrint:
-		node.parseAsChild(parser.matchPrintStatement)
+	case TTypePrint:
+		node.ParseAsChild(parser.matchPrintStatement)
 
-	case tTypeIdentifier:
-		node.parseAsChild(parser.matchAssignmentStatement)
+	case TTypeIdentifier:
+		node.ParseAsChild(parser.matchAssignmentStatement)
 
-	case tTypeRequire:
-		node.parseAsChild(parser.matchOctothorpeStatement)
+	case TTypeRequire:
+		node.ParseAsChild(parser.matchOctothorpeStatement)
 
 	default:
 		parser.panic("matchStatement", "statement")
 	}
 
-	parser.handleError(nTypeStatement)
+	parser.handleError(NTypeStatement)
 
 	return &node
 }
 
 func (parser *Parser) matchPrintStatement(parent *Node) *Node {
-	node := Node{Type: nTypePrintStatement}
-	parser.match(tTypePrint)
-	node.parseAsChild(parser.matchExpression)
+	node := Node{Type: NTypePrintStatement}
+	parser.match(TTypePrint)
+	node.ParseAsChild(parser.matchExpression)
 	parser.match(';')
 	return &node
 }
 
 func (parser *Parser) matchAssignmentStatement(parent *Node) *Node {
-	node := Node{Type: nTypeAssignmentStatement}
-	token := parser.match(tTypeIdentifier)
-	node.addChild(&Node{
-		Type:   nTypeIdentifier,
-		Lexeme: token.lexeme,
+	node := Node{Type: NTypeAssignmentStatement}
+	token := parser.match(TTypeIdentifier)
+	node.AddChild(&Node{
+		Type:   NTypeIdentifier,
+		Lexeme: token.Lexeme,
 	})
-	parser.match(tTypeIs)
-	node.parseAsChild(parser.matchExpression)
+	parser.match(TTypeIs)
+	node.ParseAsChild(parser.matchExpression)
 	parser.match(';')
 	return &node
 }
 
 func (parser *Parser) matchOctothorpeStatement(parent *Node) *Node {
-	node := Node{Type: nTypeOctothorpeStatement}
-	parser.match(tTypeRequire)
-	node.parseAsChild(parser.matchExpression)
+	node := Node{Type: NTypeOctothorpeStatement}
+	parser.match(TTypeRequire)
+	node.ParseAsChild(parser.matchExpression)
 	parser.match(';')
 	return &node
 }
 
 func (parser *Parser) matchExpression(parent *Node) *Node {
-	node := Node{Type: nTypeExpression}
+	node := Node{Type: NTypeExpression}
 
-	switch parser.lookahead.Type {
+	switch parser.Lookahead.Type {
 
-	case tTypeIdentifier:
-		token := parser.match(tTypeIdentifier)
-		node.addChild(&Node{
-			Type:   nTypeIdentifier,
-			Lexeme: token.lexeme,
+	case TTypeIdentifier:
+		token := parser.match(TTypeIdentifier)
+		node.AddChild(&Node{
+			Type:   NTypeIdentifier,
+			Lexeme: token.Lexeme,
 		})
 
-	case tTypeLiteral:
-		token := parser.match(tTypeLiteral)
-		node.addChild(&Node{
-			Type:   nTypeLiteral,
-			Lexeme: token.lexeme,
+	case TTypeLiteral:
+		token := parser.match(TTypeLiteral)
+		node.AddChild(&Node{
+			Type:   NTypeLiteral,
+			Lexeme: token.Lexeme,
 		})
 
-	case tTypeNumber:
-		token := parser.match(tTypeNumber)
-		node.addChild(&Node{
-			Type:   nTypeNumber,
-			Number: token.value,
+	case TTypeNumber:
+		token := parser.match(TTypeNumber)
+		node.AddChild(&Node{
+			Type:   NTypeNumber,
+			Number: token.Value,
 		})
 
-	case tTypeBoolean:
-		token := parser.match(tTypeBoolean)
-		node.addChild(&Node{
-			Type:   nTypeBoolean,
-			Number: token.value,
-			Lexeme: token.lexeme,
+	case TTypeBoolean:
+		token := parser.match(TTypeBoolean)
+		node.AddChild(&Node{
+			Type:   NTypeBoolean,
+			Number: token.Value,
+			Lexeme: token.Lexeme,
 		})
 
-	case tTypeNot:
-		token := parser.match(tTypeNot)
+	case TTypeNot:
+		token := parser.match(TTypeNot)
 		notNode := &Node{
-			Type:   nTypeNot,
-			Lexeme: token.lexeme,
+			Type:   NTypeNot,
+			Lexeme: token.Lexeme,
 		}
-		node.addChild(notNode)
-		notNode.parseAsChild(parser.matchExpression)
+		node.AddChild(notNode)
+		notNode.ParseAsChild(parser.matchExpression)
 
 	case '(':
 		parser.match('(')
-		node.parseAsChild(parser.matchExpression)
+		node.ParseAsChild(parser.matchExpression)
 		parser.match(')')
 
 	default:
 		parser.panic("matchExpression", "expression")
 	}
 
-	if parser.lookahead.Type == tTypeOperator {
+	if parser.Lookahead.Type == TTypeOperator {
 		// TODO: Handle operator presedence
-		node.Type = nTypeOperator
-		node.Lexeme = parser.lookahead.lexeme
-		parser.match(tTypeOperator)
-		node.parseAsChild(parser.matchExpression)
+		node.Type = NTypeOperator
+		node.Lexeme = parser.Lookahead.Lexeme
+		parser.match(TTypeOperator)
+		node.ParseAsChild(parser.matchExpression)
 	}
 
-	parser.handleError(nTypeExpression)
+	parser.handleError(NTypeExpression)
 
 	return &node
 }
@@ -260,44 +261,44 @@ func (parser *Parser) panic(where string, expected string) {
 		where,
 		parser.line,
 		expected,
-		parser.lookahead.lexeme)
-	parser.hasError = true
+		parser.Lookahead.Lexeme)
+	parser.HasError = true
 }
 
-func (parser *Parser) handleError(nType NodeType) {
-	if !parser.hasError {
+func (parser *Parser) handleError(NType NodeType) {
+	if !parser.HasError {
 		return
 	}
-	parser.hasError = false
+	parser.HasError = false
 	// try to synchronize
 	for {
-		tokenType := parser.lookahead.Type
-		switch nType {
-		case nTypeExpression:
-			if tokenType == tTypePrint ||
-				tokenType == tTypeIdentifier {
+		tokeNType := parser.Lookahead.Type
+		switch NType {
+		case NTypeExpression:
+			if tokeNType == TTypePrint ||
+				tokeNType == TTypeIdentifier {
 				return
 			}
-			if tokenType == ';' {
+			if tokeNType == ';' {
 				parser.next()
 				return
 			}
-		case nTypeStatement:
-			if tokenType == '{' ||
-				tokenType == tTypePrint ||
-				tokenType == tTypeIdentifier {
+		case NTypeStatement:
+			if tokeNType == '{' ||
+				tokeNType == TTypePrint ||
+				tokeNType == TTypeIdentifier {
 				return
 			}
-			if tokenType == ';' {
+			if tokeNType == ';' {
 				parser.next()
 				return
 			}
 
-		case nTypeBlock:
-			if tokenType == '{' {
+		case NTypeBlock:
+			if tokeNType == '{' {
 				return
 			}
-			if tokenType == '}' {
+			if tokeNType == '}' {
 				parser.next()
 				return
 			}
