@@ -18,3 +18,9 @@ house = House(
         r 255
     )
 )
+
+{
+    require house.streetNumber > 0
+
+    print house.street
+}

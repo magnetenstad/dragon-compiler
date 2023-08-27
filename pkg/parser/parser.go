@@ -197,6 +197,11 @@ func (parser *Parser) matchExpression(parent *ast.Node) *ast.Node {
 
 	case lexer.TypeIdentifier:
 		token := parser.match(lexer.TypeIdentifier)
+		for parser.lookahead.Type == '.' {
+			parser.match('.')
+			token.Lexeme += "."
+			token.Lexeme += parser.match(lexer.TypeIdentifier).Lexeme
+		}
 		node.AddChild(&ast.Node{
 			Type:   ast.TypeIdentifier,
 			Lexeme: token.Lexeme,
