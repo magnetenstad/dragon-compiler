@@ -1,3 +1,6 @@
 .vscode
 assets
 dist
+examples/*.ast
+examples/*.c
+bip-grammar

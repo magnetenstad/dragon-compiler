@@ -5,6 +5,7 @@ type Node struct {
 	Name     string // For debugging
 	Lexeme   string
 	Number   int
+	TypeHint string
 	Children []*Node
 }
 
@@ -41,6 +42,8 @@ const (
 	TypePrintStatement
 	TypeOctothorpeStatement
 	TypeAssignmentStatement
+	TypeStructStatement
+	TypeStructField
 	TypeNot
 )
 
@@ -74,6 +77,10 @@ func (sType NodeType) name() string {
 		return "Assignment"
 	case TypeOctothorpeStatement:
 		return "Octothorpe"
+	case TypeStructStatement:
+		return "StructDeclaration"
+	case TypeStructField:
+		return "StructField"
 	default:
 		return string(rune(sType))
 	}

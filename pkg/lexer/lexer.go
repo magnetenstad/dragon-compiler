@@ -19,7 +19,38 @@ const (
 	TypeRequire
 	TypeIs
 	TypeNot
+	TypeStruct
+	TypeTypeHint
 )
+
+func (e TokenType) String() string {
+	switch e {
+	case TypeIdentifier:
+		return "TypeIdentifier"
+	case TypeLiteral:
+		return "TypeLiteral"
+	case TypeNumber:
+		return "TypeNumber"
+	case TypeBoolean:
+		return "TypeBoolean"
+	case TypeOperator:
+		return "TypeOperator"
+	case TypePrint:
+		return "TypePrint"
+	case TypeRequire:
+		return "TypeRequire"
+	case TypeIs:
+		return "TypeIs"
+	case TypeNot:
+		return "TypeNot"
+	case TypeStruct:
+		return "TypeStruct"
+	case TypeTypeHint:
+		return "TypeTypeHint"
+	default:
+		return string(rune(e))
+	}
+}
 
 type Position struct {
 	Line int
@@ -50,8 +81,16 @@ func NewLexer(reader io.RuneReader) Lexer {
 	lexer.reserve(Token{Type: TypeBoolean, Value: 0, Lexeme: "false"})
 	lexer.reserve(Token{Type: TypePrint, Lexeme: "print"})
 	lexer.reserve(Token{Type: TypeRequire, Lexeme: "require"})
+	lexer.reserve(Token{Type: TypeRequire, Lexeme: "#"})
 	lexer.reserve(Token{Type: TypeIs, Lexeme: "is"})
+	lexer.reserve(Token{Type: TypeIs, Lexeme: "="})
 	lexer.reserve(Token{Type: TypeNot, Lexeme: "not"})
+	lexer.reserve(Token{Type: TypeNot, Lexeme: "!"})
+	lexer.reserve(Token{Type: TypeStruct, Lexeme: "struct"})
+	lexer.reserve(Token{Type: TypeTypeHint, Lexeme: "Int"})
+	lexer.reserve(Token{Type: TypeTypeHint, Lexeme: "Float"})
+	lexer.reserve(Token{Type: TypeTypeHint, Lexeme: "String"})
+	lexer.reserve(Token{Type: TypeTypeHint, Lexeme: "Bool"})
 	return lexer
 }
 
@@ -131,13 +170,18 @@ func (lexer *Lexer) scan() (*Token, error) {
 	if unicode.IsLetter(lexer.peek) {
 		var sb strings.Builder
 
+		tokenType := TypeIdentifier
+		if unicode.IsUpper(lexer.peek) {
+			tokenType = TypeTypeHint
+		}
+
 		for unicode.IsLetter(lexer.peek) {
 			sb.WriteRune(lexer.peek)
 			lexer.peekNext()
 		}
 
 		lexeme := sb.String()
-		token.Type = TypeIdentifier
+		token.Type = TokenType(tokenType)
 		token.Lexeme = lexeme
 
 		existingToken, exists := lexer.Lexemes[lexeme]

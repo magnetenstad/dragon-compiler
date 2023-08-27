@@ -35,9 +35,10 @@ statements  ->
   | statement
 
 statement   ->
-    identifier = expression ;
-  | print expression ;
-  | # expression ;
+    identifier = expression
+  | print expression
+  | # expression
+  | struct block
 
 expression  ->
     ( expression operator expression )

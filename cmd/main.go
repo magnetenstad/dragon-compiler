@@ -13,8 +13,9 @@ import (
 )
 
 func main() {
+	filename := "examples/struct"
 
-	file, err := os.Open("assets/basic.bip")
+	file, err := os.Open(filename + ".bip")
 	error.Check(err)
 	defer file.Close()
 
@@ -32,18 +33,18 @@ func main() {
 	root := parser.Parse()
 	fmt.Println(root)
 
-	file, err = os.Create("assets/basic.ast")
+	file, err = os.Create(filename + ".ast")
 	error.Check(err)
 	defer file.Close()
 	file.Write(toJson(root))
 
-	file, err = os.Create("assets/basic.c")
+	file, err = os.Create(filename + ".c")
 	error.Check(err)
 	defer file.Close()
 	output := c.Generate(root)
 	file.WriteString(output)
 
-	// file, err = os.Create("assets/basic.wast")
+	// file, err = os.Create(filename + ".wast")
 	// error.Check(err)
 	// defer file.Close()
 	// output = generateWasmProgram(root)

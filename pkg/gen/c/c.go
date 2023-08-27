@@ -107,8 +107,38 @@ func generate(node *ast.Node, ctx *Context) {
 		generate(node.Children[0], ctx)
 		ctx.sb.WriteString(")")
 
-	}
+	case ast.TypeStructStatement:
+		writeTabs(ctx, ctx.tabs)
+		ctx.sb.WriteString("typedef struct {\n")
+		ctx.tabs += 1
+		for _, child := range node.Children {
+			generate(child, ctx)
+		}
+		ctx.tabs -= 1
+		writeTabs(ctx, ctx.tabs)
+		ctx.sb.WriteString(fmt.Sprintf("} %s;\n", node.Lexeme))
 
+	case ast.TypeStructField:
+		writeTabs(ctx, ctx.tabs)
+		ctx.sb.WriteString(
+			fmt.Sprintf("%s %s;\n",
+				typeHintToString(node.TypeHint), node.Lexeme))
+	}
+}
+
+func typeHintToString(lexeme string) string {
+	switch lexeme {
+	case "Int":
+		return "int"
+	case "Float":
+		return "float"
+	case "Bool":
+		return "bool"
+	case "String":
+		return "char*"
+	default:
+		return lexeme
+	}
 }
 
 func writeTabs(ctx *Context, tabs int) {
