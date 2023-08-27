@@ -135,22 +135,25 @@ func generate(node *ast.Node, ctx *Context) {
 		ctx.sb.Append(fmt.Sprintf("} %s;\n", node.Lexeme))
 		writeTabs(ctx.sb, ctx.tabs)
 		ctx.sb.Append(fmt.Sprintf(
-			"%s __Construct_%s__() {\n", node.Lexeme, node.Lexeme))
+			"void __Construct_%s__(%s *o) {\n", node.Lexeme, node.Lexeme))
 		ctx.tabs += 1
-		writeTabs(ctx.sb, ctx.tabs)
-		ctx.sb.Append(fmt.Sprintf("%s o;\n", node.Lexeme))
 		for _, child := range node.Children {
 			writeTabs(ctx.sb, ctx.tabs)
-			ctx.sb.Append(fmt.Sprintf("o.%s = ", child.Lexeme))
 			if len(child.Children) > 0 {
+				ctx.sb.Append(fmt.Sprintf("o->%s = ", child.Lexeme))
 				generate(child.Children[0], ctx)
 			} else {
-				ctx.sb.Append(getDefaultValue(child))
+				defaultValue := getDefaultValue(child)
+				if len(defaultValue) == 0 {
+					ctx.sb.Append(fmt.Sprintf(
+						"__Construct_%s__(&o->%s)", child.TypeHint, child.Lexeme))
+				} else {
+					ctx.sb.Append(fmt.Sprintf("o->%s = ", child.Lexeme))
+					ctx.sb.Append(getDefaultValue(child))
+				}
 			}
 			ctx.sb.Append(";\n")
 		}
-		writeTabs(ctx.sb, ctx.tabs)
-		ctx.sb.Append("return o;\n")
 		ctx.tabs -= 1
 		writeTabs(ctx.sb, ctx.tabs)
 		ctx.sb.Append("}\n")
@@ -169,7 +172,10 @@ func generate(node *ast.Node, ctx *Context) {
 		instanceId := fmt.Sprintf("__Instance_%d__", uniqueIndex)
 		writeTabs(&sb, ctx.tabs)
 		sb.Append(fmt.Sprintf(
-			"%s %s = __Construct_%s__();\n", node.Lexeme, instanceId, node.Lexeme))
+			"%s %s;\n", node.Lexeme, instanceId))
+		writeTabs(&sb, ctx.tabs)
+		sb.Append(fmt.Sprintf(
+			"__Construct_%s__(&%s);\n", node.Lexeme, instanceId))
 		sbPrev := ctx.sb
 		ctx.sb = &sb
 		for _, child := range node.Children {
@@ -209,7 +215,7 @@ func getDefaultValue(node *ast.Node) string {
 	case "String":
 		return "\"\""
 	default:
-		return fmt.Sprintf("__Construct_%s__()", node.TypeHint)
+		return ""
 	}
 }
 
