@@ -80,7 +80,13 @@ func generate(node *ast.Node, ctx *Context) {
 
 	case ast.TypeAssignmentStatement:
 		writeTabs(ctx.sb, ctx.tabs) // TODO: handle identifiers and types
-		ctx.sb.Append(fmt.Sprintf("int %s = ", node.Children[0].Lexeme))
+		typeHint := "int"
+		if node.Children[1].Children[0].Type == ast.TypeConstructor {
+			typeHint = node.Children[1].Children[0].Lexeme
+		}
+		ctx.sb.Append(fmt.Sprintf(
+			"%s %s = ", typeHint, node.Children[0].Lexeme))
+
 		generate(node.Children[1], ctx)
 		ctx.sb.Append(";\n")
 
@@ -127,6 +133,27 @@ func generate(node *ast.Node, ctx *Context) {
 		ctx.tabs -= 1
 		writeTabs(ctx.sb, ctx.tabs)
 		ctx.sb.Append(fmt.Sprintf("} %s;\n", node.Lexeme))
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append(fmt.Sprintf(
+			"%s __Construct_%s__() {\n", node.Lexeme, node.Lexeme))
+		ctx.tabs += 1
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append(fmt.Sprintf("%s o;\n", node.Lexeme))
+		for _, child := range node.Children {
+			writeTabs(ctx.sb, ctx.tabs)
+			ctx.sb.Append(fmt.Sprintf("o.%s = ", child.Lexeme))
+			if len(child.Children) > 0 {
+				generate(child.Children[0], ctx)
+			} else {
+				ctx.sb.Append(getDefaultValue(child))
+			}
+			ctx.sb.Append(";\n")
+		}
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append("return o;\n")
+		ctx.tabs -= 1
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append("}\n")
 
 	case ast.TypeStructField:
 		writeTabs(ctx.sb, ctx.tabs)
@@ -140,12 +167,9 @@ func generate(node *ast.Node, ctx *Context) {
 		uniqueIndex := ctx.uniqueIndex
 		sb.AppendRune('\n')
 		instanceId := fmt.Sprintf("__Instance_%d__", uniqueIndex)
-		instanceIdPointer := fmt.Sprintf("__Instance_%d_Pointer__", uniqueIndex)
 		writeTabs(&sb, ctx.tabs)
-		sb.Append(fmt.Sprintf("%s %s;\n", node.Lexeme, instanceId))
-		writeTabs(&sb, ctx.tabs)
-		sb.Append(fmt.Sprintf("%s* %s = &%s;\n",
-			node.Lexeme, instanceIdPointer, instanceId))
+		sb.Append(fmt.Sprintf(
+			"%s %s = __Construct_%s__();\n", node.Lexeme, instanceId, node.Lexeme))
 		sbPrev := ctx.sb
 		ctx.sb = &sb
 		for _, child := range node.Children {
@@ -155,7 +179,7 @@ func generate(node *ast.Node, ctx *Context) {
 		index := ctx.sb.FindLast(";")
 		sb.TrimEnd('\n')
 		ctx.sb.Insert(index+1, sb.ToString())
-		ctx.sb.Append(instanceIdPointer)
+		ctx.sb.Append(instanceId)
 		// list, exist := ctx.instancesToFree[ctx.block]
 		// if !exist {
 		// 	list = make([]string, 0)
@@ -166,11 +190,26 @@ func generate(node *ast.Node, ctx *Context) {
 
 	case ast.TypeStructArgument:
 		writeTabs(ctx.sb, ctx.tabs)
-		instanceIdPointer := fmt.Sprintf("__Instance_%d_Pointer__",
+		instanceId := fmt.Sprintf("__Instance_%d__",
 			ctx.uniqueIndex)
-		ctx.sb.Append(fmt.Sprintf("%s->%s = ", instanceIdPointer, node.Lexeme))
+		ctx.sb.Append(fmt.Sprintf("%s.%s = ", instanceId, node.Lexeme))
 		generate(node.Children[0], ctx)
 		ctx.sb.Append(";\n")
+	}
+}
+
+func getDefaultValue(node *ast.Node) string {
+	switch node.TypeHint {
+	case "Int":
+		return "0"
+	case "Float":
+		return "0.0"
+	case "Bool":
+		return "false"
+	case "String":
+		return "\"\""
+	default:
+		return fmt.Sprintf("__Construct_%s__()", node.TypeHint)
 	}
 }
 
@@ -185,7 +224,7 @@ func typeHintToString(lexeme string) string {
 	case "String":
 		return "char*"
 	default:
-		return lexeme + "*"
+		return lexeme
 	}
 }
 
