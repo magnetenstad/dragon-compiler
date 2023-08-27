@@ -42,23 +42,6 @@ func (parser *Parser) match(tType lexer.TokenType) lexer.Token {
 	return lexer.Token{}
 }
 
-func (parser *Parser) matchLexeme(lexeme string) {
-	if parser.lookahead.Lexeme == lexeme {
-		parser.next()
-	} else {
-		parser.panic("matchLexeme", parser.lookahead.Lexeme)
-	}
-}
-
-func (parser *Parser) matchOptional(tType lexer.TokenType) bool {
-	if parser.lookahead.Type == tType {
-		parser.match(tType)
-		return true
-	}
-
-	return false
-}
-
 func (parser *Parser) next() bool {
 	parser.line = parser.lookahead.Position.Line
 
