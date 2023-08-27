@@ -17,7 +17,6 @@ const (
 	TypeOperator
 	TypePrint
 	TypeRequire
-	TypeIs
 	TypeNot
 	TypeStruct
 	TypeTypeHint
@@ -39,8 +38,6 @@ func (e TokenType) String() string {
 		return "TypePrint"
 	case TypeRequire:
 		return "TypeRequire"
-	case TypeIs:
-		return "TypeIs"
 	case TypeNot:
 		return "TypeNot"
 	case TypeStruct:
@@ -81,10 +78,6 @@ func NewLexer(reader io.RuneReader) Lexer {
 	lexer.reserve(Token{Type: TypeBoolean, Value: 0, Lexeme: "false"})
 	lexer.reserve(Token{Type: TypePrint, Lexeme: "print"})
 	lexer.reserve(Token{Type: TypeRequire, Lexeme: "require"})
-	lexer.reserve(Token{Type: TypeRequire, Lexeme: "#"})
-	lexer.reserve(Token{Type: TypeIs, Lexeme: "is"})
-	lexer.reserve(Token{Type: TypeIs, Lexeme: "="})
-	lexer.reserve(Token{Type: TypeNot, Lexeme: "not"})
 	lexer.reserve(Token{Type: TypeNot, Lexeme: "!"})
 	lexer.reserve(Token{Type: TypeStruct, Lexeme: "struct"})
 	lexer.reserve(Token{Type: TypeTypeHint, Lexeme: "Int"})
@@ -219,6 +212,10 @@ func (lexer *Lexer) scan() (*Token, error) {
 
 func (lexer *Lexer) ScanAll() []Token {
 	var tokens []Token
+	tokens = append(tokens, Token{
+		Type:   '{',
+		Lexeme: "{",
+	})
 	for {
 		token, err := lexer.scan()
 		if err != nil {
@@ -226,6 +223,10 @@ func (lexer *Lexer) ScanAll() []Token {
 		}
 		tokens = append(tokens, *token)
 	}
+	tokens = append(tokens, Token{
+		Type:   '}',
+		Lexeme: "}",
+	})
 	return tokens
 }
 
@@ -235,7 +236,5 @@ func isOperator(r rune) bool {
 		r == '*' ||
 		r == '/' ||
 		r == '+' ||
-		r == '-' ||
-		r == '!' ||
-		r == '='
+		r == '-'
 }

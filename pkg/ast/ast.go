@@ -30,6 +30,7 @@ const (
 	TypeZero       NodeType = 0
 	TypeIdentifier          = iota + 256
 	TypeLiteral
+	TypeNot
 	TypeNumber
 	TypeBoolean
 	TypeOperator
@@ -44,7 +45,8 @@ const (
 	TypeAssignmentStatement
 	TypeStructStatement
 	TypeStructField
-	TypeNot
+	TypeConstructor
+	TypeStructArgument
 )
 
 func (sType NodeType) name() string {
@@ -81,6 +83,8 @@ func (sType NodeType) name() string {
 		return "StructDeclaration"
 	case TypeStructField:
 		return "StructField"
+	case TypeStructArgument:
+		return "StructArgument"
 	default:
 		return string(rune(sType))
 	}

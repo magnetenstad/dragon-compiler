@@ -13,7 +13,14 @@ import (
 )
 
 func main() {
-	filename := "examples/struct"
+	compile("examples/hwp")
+	compile("examples/blocks")
+	compile("examples/print")
+	compile("examples/struct")
+	compile("examples/constructor")
+}
+
+func compile(filename string) {
 
 	file, err := os.Open(filename + ".bip")
 	error.Check(err)
@@ -49,7 +56,6 @@ func main() {
 	// defer file.Close()
 	// output = generateWasmProgram(root)
 	// file.WriteString(output)
-
 }
 
 func toJson(obj interface{}) []byte {

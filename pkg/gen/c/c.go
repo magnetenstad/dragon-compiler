@@ -2,24 +2,27 @@ package c
 
 import (
 	"fmt"
-	"strings"
 
+	Text "github.com/linkdotnet/golang-stringbuilder"
 	"github.com/magnetenstad/dragon-compiler/pkg/ast"
 )
 
 type Context struct {
-	tabs  int
-	block int
-	sb    *strings.Builder
+	tabs            int
+	block           int
+	uniqueIndex     int
+	instancesToFree map[int][]string
+	sb              *Text.StringBuilder
 }
 
 func Generate(node *ast.Node) string {
-	var sb strings.Builder
+	sb := Text.StringBuilder{}
 	ctx := Context{
-		sb: &sb,
+		sb:              &sb,
+		instancesToFree: make(map[int][]string),
 	}
 	generate(node, &ctx)
-	return ctx.sb.String()
+	return ctx.sb.ToString()
 }
 
 func generate(node *ast.Node, ctx *Context) {
@@ -27,31 +30,38 @@ func generate(node *ast.Node, ctx *Context) {
 	switch node.Type {
 
 	case ast.TypeProgram:
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString("#include <stdio.h>\n\n")
-		ctx.sb.WriteString("int main(int argc, char *argv[]) {\n")
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append("#include <stdio.h>\n\n")
+		ctx.sb.Append("int main(int argc, char *argv[]) {\n")
 		ctx.tabs += 1
 		generate(node.Children[0], ctx)
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString("return 0;\n")
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append("return 0;\n")
 		ctx.tabs -= 1
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString("}\n")
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append("}\n")
 
 	case ast.TypeBlock:
 		ctx.block += 1
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString(fmt.Sprintf("__StartBlock__%d: {\n", ctx.block))
+		block := ctx.block
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append(fmt.Sprintf("__StartBlock_%d__: {;\n", block))
 		ctx.tabs += 1
 		for _, child := range node.Children {
 			generate(child, ctx)
 		}
+		instancesToFree, exist := ctx.instancesToFree[block]
+		if exist {
+			for _, id := range instancesToFree {
+				writeTabs(ctx.sb, ctx.tabs)
+				ctx.sb.Append(fmt.Sprintf("free(%s);\n", id))
+			}
+		}
 		ctx.tabs -= 1
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString("}\n")
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString(fmt.Sprintf("__EndBlock__%d: {}\n", ctx.block))
-		ctx.block -= 1
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append("}\n")
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append(fmt.Sprintf("__EndBlock_%d__: {}\n", block))
 
 	case ast.TypeBlocks:
 		fallthrough
@@ -63,66 +73,99 @@ func generate(node *ast.Node, ctx *Context) {
 		}
 
 	case ast.TypePrintStatement:
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString("printf(")
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append("printf(")
 		generate(node.Children[0], ctx)
-		ctx.sb.WriteString(");\n")
+		ctx.sb.Append(");\n")
 
 	case ast.TypeAssignmentStatement:
-		writeTabs(ctx, ctx.tabs) // TODO: handle identifiers and types
-		ctx.sb.WriteString(fmt.Sprintf("int %s = ", node.Children[0].Lexeme))
+		writeTabs(ctx.sb, ctx.tabs) // TODO: handle identifiers and types
+		ctx.sb.Append(fmt.Sprintf("int %s = ", node.Children[0].Lexeme))
 		generate(node.Children[1], ctx)
-		ctx.sb.WriteString(";\n")
+		ctx.sb.Append(";\n")
 
 	case ast.TypeOctothorpeStatement:
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString("if (!(")
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append("if (!(")
 		generate(node.Children[0], ctx)
-		ctx.sb.WriteString(fmt.Sprintf(")) goto __EndBlock__%d;\n", ctx.block))
+		ctx.sb.Append(fmt.Sprintf(")) goto __EndBlock_%d__;\n", ctx.block))
 
 	case ast.TypeExpression:
 		generate(node.Children[0], ctx)
 
 	case ast.TypeOperator:
-		ctx.sb.WriteString("(")
+		ctx.sb.Append("(")
 		generate(node.Children[0], ctx)
-		ctx.sb.WriteString(node.Lexeme)
+		ctx.sb.Append(node.Lexeme)
 		generate(node.Children[1], ctx)
-		ctx.sb.WriteString(")")
+		ctx.sb.Append(")")
 
 	case ast.TypeLiteral:
-		ctx.sb.WriteString(fmt.Sprintf("\"%s\"", node.Lexeme))
+		ctx.sb.Append(fmt.Sprintf("\"%s\"", node.Lexeme))
 
 	case ast.TypeNumber:
-		ctx.sb.WriteString(fmt.Sprintf("%d", node.Number))
+		ctx.sb.Append(fmt.Sprintf("%d", node.Number))
 
 	case ast.TypeBoolean:
-		ctx.sb.WriteString(fmt.Sprintf("%d", node.Number))
+		ctx.sb.Append(fmt.Sprintf("%d", node.Number))
 
 	case ast.TypeIdentifier:
-		ctx.sb.WriteString(node.Lexeme) // TODO: handle identifiers
+		ctx.sb.Append(node.Lexeme) // TODO: handle identifiers
 
 	case ast.TypeNot:
-		ctx.sb.WriteString("!(")
+		ctx.sb.Append("!(")
 		generate(node.Children[0], ctx)
-		ctx.sb.WriteString(")")
+		ctx.sb.Append(")")
 
 	case ast.TypeStructStatement:
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString("typedef struct {\n")
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append("typedef struct {\n")
 		ctx.tabs += 1
 		for _, child := range node.Children {
 			generate(child, ctx)
 		}
 		ctx.tabs -= 1
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString(fmt.Sprintf("} %s;\n", node.Lexeme))
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append(fmt.Sprintf("} %s;\n", node.Lexeme))
 
 	case ast.TypeStructField:
-		writeTabs(ctx, ctx.tabs)
-		ctx.sb.WriteString(
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append(
 			fmt.Sprintf("%s %s;\n",
 				typeHintToString(node.TypeHint), node.Lexeme))
+
+	case ast.TypeConstructor:
+		sb := Text.StringBuilder{}
+		ctx.uniqueIndex += 1
+		uniqueIndex := ctx.uniqueIndex
+		sb.AppendRune('\n')
+		writeTabs(&sb, ctx.tabs)
+		sb.Append(fmt.Sprintf("%s *__Instance_%d__ = malloc(sizeof(%s));\n",
+			node.Lexeme, uniqueIndex, node.Lexeme))
+		sbPrev := ctx.sb
+		ctx.sb = &sb
+		for _, child := range node.Children {
+			generate(child, ctx)
+		}
+		ctx.sb = sbPrev
+		index := ctx.sb.FindLast(";")
+		sb.TrimEnd('\n')
+		ctx.sb.Insert(index+1, sb.ToString())
+		instanceId := fmt.Sprintf("__Instance_%d__", uniqueIndex)
+		ctx.sb.Append(instanceId)
+		list, exist := ctx.instancesToFree[ctx.block]
+		if !exist {
+			list = make([]string, 0)
+			ctx.instancesToFree[ctx.block] = list
+		}
+		list = append(list, instanceId)
+		ctx.instancesToFree[ctx.block] = list
+
+	case ast.TypeStructArgument:
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append(fmt.Sprintf("__Instance_%d__->%s = ", ctx.uniqueIndex, node.Lexeme))
+		generate(node.Children[0], ctx)
+		ctx.sb.Append(";\n")
 	}
 }
 
@@ -137,12 +180,12 @@ func typeHintToString(lexeme string) string {
 	case "String":
 		return "char*"
 	default:
-		return lexeme
+		return lexeme + "*"
 	}
 }
 
-func writeTabs(ctx *Context, tabs int) {
+func writeTabs(sb *Text.StringBuilder, tabs int) {
 	for i := 0; i < tabs; i++ {
-		ctx.sb.WriteByte('\t')
+		sb.AppendRune('\t')
 	}
 }

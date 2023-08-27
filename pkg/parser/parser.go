@@ -107,10 +107,7 @@ func (parser *Parser) matchBlock(parent *ast.Node) *ast.Node {
 
 	parser.match('{')
 
-	for {
-		if parser.lookahead.Type == '}' {
-			break
-		}
+	for parser.lookahead.Type != '}' {
 		if parser.lookahead.Type == '{' {
 			node.ParseAsChild(parser.matchBlocks)
 			continue
@@ -127,7 +124,9 @@ func (parser *Parser) matchBlock(parent *ast.Node) *ast.Node {
 func (parser *Parser) matchStatements(parent *ast.Node) *ast.Node {
 	node := ast.Node{Type: ast.TypeStatements}
 
-	for parser.lookahead.Type != '{' && parser.lookahead.Type != '}' {
+	for parser.lookahead.Type != '{' &&
+		parser.lookahead.Type != '}' &&
+		parser.lookahead.Type != lexer.TypeZero {
 		node.ParseAsChild(parser.matchStatement)
 	}
 	return &node
@@ -151,6 +150,8 @@ func (parser *Parser) matchStatement(parent *ast.Node) *ast.Node {
 		node.ParseAsChild(parser.matchStructStatement)
 
 	default:
+		fmt.Println("uoh")
+		fmt.Println(parser.lookahead.Type)
 		parser.panic("matchStatement", "statement")
 	}
 
@@ -173,7 +174,7 @@ func (parser *Parser) matchAssignmentStatement(parent *ast.Node) *ast.Node {
 		Type:   ast.TypeIdentifier,
 		Lexeme: token.Lexeme,
 	})
-	parser.match(lexer.TypeIs)
+	parser.match('=')
 	node.ParseAsChild(parser.matchExpression)
 	return &node
 }
@@ -250,6 +251,23 @@ func (parser *Parser) matchExpression(parent *ast.Node) *ast.Node {
 		}
 		node.AddChild(notNode)
 		notNode.ParseAsChild(parser.matchExpression)
+
+	case lexer.TypeTypeHint:
+		token := parser.match(lexer.TypeTypeHint)
+		constructorNode := &ast.Node{
+			Type:   ast.TypeConstructor,
+			Lexeme: token.Lexeme,
+		}
+		node.AddChild(constructorNode)
+		parser.match('(')
+		for parser.lookahead.Type != ')' {
+			fieldNode := ast.Node{Type: ast.TypeStructArgument}
+			idToken := parser.match(lexer.TypeIdentifier)
+			fieldNode.ParseAsChild(parser.matchExpression)
+			constructorNode.AddChild(&fieldNode)
+			fieldNode.Lexeme = idToken.Lexeme
+		}
+		parser.match(')')
 
 	case '(':
 		parser.match('(')

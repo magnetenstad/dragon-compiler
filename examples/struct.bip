@@ -1,13 +1,11 @@
-{
-    struct Color {
-        Int r
-        Int g
-        Int b
-    }
+struct Color {
+    Int r
+    Int g
+    Int b
+}
 
-    struct House {
-        String street
-        Int streetNumber
-        Color color
-    }
+struct House {
+    String street
+    Int streetNumber
+    Color color
 }
