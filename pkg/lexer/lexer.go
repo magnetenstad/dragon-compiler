@@ -212,10 +212,7 @@ func (lexer *Lexer) scan() (*Token, error) {
 
 func (lexer *Lexer) ScanAll() []Token {
 	var tokens []Token
-	tokens = append(tokens, Token{
-		Type:   '{',
-		Lexeme: "{",
-	})
+
 	for {
 		token, err := lexer.scan()
 		if err != nil {
@@ -223,10 +220,7 @@ func (lexer *Lexer) ScanAll() []Token {
 		}
 		tokens = append(tokens, *token)
 	}
-	tokens = append(tokens, Token{
-		Type:   '}',
-		Lexeme: "}",
-	})
+
 	return tokens
 }
 

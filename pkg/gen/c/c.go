@@ -15,31 +15,31 @@ type Context struct {
 	sb              *Text.StringBuilder
 }
 
-func Generate(node *ast.Node) string {
+func Generate(root *ast.RootNode) string {
 	sb := Text.StringBuilder{}
 	ctx := Context{
 		sb:              &sb,
 		instancesToFree: make(map[int][]string),
 	}
-	generate(node, &ctx)
+	ctx.sb.Append("#include <stdio.h>\n\n")
+	for _, declaration := range root.Declarations {
+		generate(declaration, &ctx)
+	}
+	ctx.sb.Append("\nint main(int argc, char *argv[]) {;\n")
+	ctx.tabs += 1
+	for _, child := range root.Children {
+		generate(child, &ctx)
+	}
+	writeTabs(ctx.sb, ctx.tabs)
+	ctx.sb.Append("return 0;\n")
+	ctx.tabs -= 1
+	ctx.sb.Append("}\n")
 	return ctx.sb.ToString()
 }
 
 func generate(node *ast.Node, ctx *Context) {
 
 	switch node.Type {
-
-	case ast.TypeProgram:
-		writeTabs(ctx.sb, ctx.tabs)
-		ctx.sb.Append("#include <stdio.h>\n\n")
-		ctx.sb.Append("int main(int argc, char *argv[]) {\n")
-		ctx.tabs += 1
-		generate(node.Children[0], ctx)
-		writeTabs(ctx.sb, ctx.tabs)
-		ctx.sb.Append("return 0;\n")
-		ctx.tabs -= 1
-		writeTabs(ctx.sb, ctx.tabs)
-		ctx.sb.Append("}\n")
 
 	case ast.TypeBlock:
 		ctx.block += 1
@@ -117,7 +117,7 @@ func generate(node *ast.Node, ctx *Context) {
 		generate(node.Children[0], ctx)
 		ctx.sb.Append(")")
 
-	case ast.TypeStructStatement:
+	case ast.TypeStructDeclaration:
 		writeTabs(ctx.sb, ctx.tabs)
 		ctx.sb.Append("typedef struct {\n")
 		ctx.tabs += 1
@@ -139,9 +139,13 @@ func generate(node *ast.Node, ctx *Context) {
 		ctx.uniqueIndex += 1
 		uniqueIndex := ctx.uniqueIndex
 		sb.AppendRune('\n')
+		instanceId := fmt.Sprintf("__Instance_%d__", uniqueIndex)
+		instanceIdPointer := fmt.Sprintf("__Instance_%d_Pointer__", uniqueIndex)
 		writeTabs(&sb, ctx.tabs)
-		sb.Append(fmt.Sprintf("%s *__Instance_%d__ = malloc(sizeof(%s));\n",
-			node.Lexeme, uniqueIndex, node.Lexeme))
+		sb.Append(fmt.Sprintf("%s %s;\n", node.Lexeme, instanceId))
+		writeTabs(&sb, ctx.tabs)
+		sb.Append(fmt.Sprintf("%s* %s = &%s;\n",
+			node.Lexeme, instanceIdPointer, instanceId))
 		sbPrev := ctx.sb
 		ctx.sb = &sb
 		for _, child := range node.Children {
@@ -151,19 +155,20 @@ func generate(node *ast.Node, ctx *Context) {
 		index := ctx.sb.FindLast(";")
 		sb.TrimEnd('\n')
 		ctx.sb.Insert(index+1, sb.ToString())
-		instanceId := fmt.Sprintf("__Instance_%d__", uniqueIndex)
-		ctx.sb.Append(instanceId)
-		list, exist := ctx.instancesToFree[ctx.block]
-		if !exist {
-			list = make([]string, 0)
-			ctx.instancesToFree[ctx.block] = list
-		}
-		list = append(list, instanceId)
-		ctx.instancesToFree[ctx.block] = list
+		ctx.sb.Append(instanceIdPointer)
+		// list, exist := ctx.instancesToFree[ctx.block]
+		// if !exist {
+		// 	list = make([]string, 0)
+		// 	ctx.instancesToFree[ctx.block] = list
+		// }
+		// list = append(list, instanceIdPointer)
+		// ctx.instancesToFree[ctx.block] = list
 
 	case ast.TypeStructArgument:
 		writeTabs(ctx.sb, ctx.tabs)
-		ctx.sb.Append(fmt.Sprintf("__Instance_%d__->%s = ", ctx.uniqueIndex, node.Lexeme))
+		instanceIdPointer := fmt.Sprintf("__Instance_%d_Pointer__",
+			ctx.uniqueIndex)
+		ctx.sb.Append(fmt.Sprintf("%s->%s = ", instanceIdPointer, node.Lexeme))
 		generate(node.Children[0], ctx)
 		ctx.sb.Append(";\n")
 	}

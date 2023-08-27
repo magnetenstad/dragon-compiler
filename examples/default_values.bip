@@ -1,0 +1,13 @@
+struct Color {
+    Int r = 100
+    Int g = 50
+    Int b = 80
+}
+
+struct House {
+    String street = "Unknown street"
+    Int streetNumber
+    Color color
+}
+
+house = House ()

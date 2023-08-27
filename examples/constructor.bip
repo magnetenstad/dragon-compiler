@@ -1,3 +1,4 @@
+
 struct Color {
     Int r
     Int g
@@ -10,7 +11,7 @@ struct House {
     Color color
 }
 
-house = House (
+house = House(
     street "Søndre Berg"
     streetNumber 8
     color Color(

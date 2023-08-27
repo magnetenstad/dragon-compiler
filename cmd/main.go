@@ -18,6 +18,7 @@ func main() {
 	compile("examples/print")
 	compile("examples/struct")
 	compile("examples/constructor")
+	compile("examples/default_values")
 }
 
 func compile(filename string) {
@@ -51,6 +52,8 @@ func compile(filename string) {
 	output := c.Generate(root)
 	file.WriteString(output)
 
+	fmt.Println(root.Children)
+	fmt.Println(root.Declarations)
 	// file, err = os.Create(filename + ".wast")
 	// error.Check(err)
 	// defer file.Close()

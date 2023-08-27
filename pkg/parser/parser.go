@@ -16,7 +16,7 @@ type Parser struct {
 	tokens    []lexer.Token
 	index     int
 	lookahead lexer.Token
-	root      *ast.Node
+	root      *ast.RootNode
 	hasError  bool
 	line      int
 }
@@ -25,7 +25,7 @@ func NewParser(tokens []lexer.Token) Parser {
 	return Parser{
 		tokens: tokens,
 		index:  -1,
-		root:   &ast.Node{},
+		root:   &ast.RootNode{},
 		line:   1,
 	}
 }
@@ -72,9 +72,9 @@ func (parser *Parser) next() bool {
 	return false
 }
 
-func (parser *Parser) Parse() *ast.Node {
+func (parser *Parser) Parse() *ast.RootNode {
 	parser.next()
-	parser.root = parser.matchProgram(&ast.Node{})
+	parser.matchProgram()
 	parser.root.SetNames()
 
 	if parser.lookahead.Type != lexer.TypeZero {
@@ -84,22 +84,18 @@ func (parser *Parser) Parse() *ast.Node {
 	return parser.root
 }
 
-func (parser *Parser) matchProgram(parent *ast.Node) *ast.Node {
+func (parser *Parser) matchProgram() {
 	node := ast.Node{Type: ast.TypeProgram}
+	parser.root = &ast.RootNode{Node: &node}
 
-	node.ParseAsChild(parser.matchBlocks)
-
-	return &node
-}
-
-func (parser *Parser) matchBlocks(parent *ast.Node) *ast.Node {
-	node := ast.Node{Type: ast.TypeBlocks}
-
-	for parser.lookahead.Type == '{' {
-		node.ParseAsChild(parser.matchBlock)
+	for parser.lookahead.Type != lexer.TypeZero {
+		switch parser.lookahead.Type {
+		case '{':
+			node.ParseAsChild(parser.matchBlock)
+		default:
+			node.ParseAsChild(parser.matchStatements)
+		}
 	}
-
-	return &node
 }
 
 func (parser *Parser) matchBlock(parent *ast.Node) *ast.Node {
@@ -109,7 +105,7 @@ func (parser *Parser) matchBlock(parent *ast.Node) *ast.Node {
 
 	for parser.lookahead.Type != '}' {
 		if parser.lookahead.Type == '{' {
-			node.ParseAsChild(parser.matchBlocks)
+			node.ParseAsChild(parser.matchBlock)
 			continue
 		}
 		node.ParseAsChild(parser.matchStatements)
@@ -147,7 +143,8 @@ func (parser *Parser) matchStatement(parent *ast.Node) *ast.Node {
 		node.ParseAsChild(parser.matchOctothorpeStatement)
 
 	case lexer.TypeStruct:
-		node.ParseAsChild(parser.matchStructStatement)
+		parser.root.Declarations = append(parser.root.Declarations, parser.matchStructDeclaration(&node))
+		fmt.Println(parser.root.Declarations)
 
 	default:
 		fmt.Println("uoh")
@@ -186,8 +183,8 @@ func (parser *Parser) matchOctothorpeStatement(parent *ast.Node) *ast.Node {
 	return &node
 }
 
-func (parser *Parser) matchStructStatement(parent *ast.Node) *ast.Node {
-	node := ast.Node{Type: ast.TypeStructStatement}
+func (parser *Parser) matchStructDeclaration(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeStructDeclaration}
 
 	parser.match(lexer.TypeStruct)
 	nameToken := parser.match(lexer.TypeTypeHint)
@@ -202,6 +199,10 @@ func (parser *Parser) matchStructStatement(parent *ast.Node) *ast.Node {
 		node.AddChild(&fieldNode)
 		fieldNode.Lexeme = idToken.Lexeme
 		fieldNode.TypeHint = typeToken.Lexeme
+		if parser.lookahead.Type == '=' {
+			parser.match('=')
+			fieldNode.ParseAsChild(parser.matchExpression)
+		}
 	}
 
 	parser.match('}')

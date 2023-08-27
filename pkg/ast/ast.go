@@ -9,12 +9,27 @@ type Node struct {
 	Children []*Node
 }
 
+type RootNode struct {
+	Declarations []*Node
+	*Node
+}
+
 func (node *Node) AddChild(child *Node) {
 	node.Children = append(node.Children, child)
 }
 
 func (parent *Node) ParseAsChild(fn func(*Node) *Node) {
 	parent.AddChild(fn(parent))
+}
+
+func (node *RootNode) SetNames() {
+	node.Name = node.Type.name()
+	for _, child := range node.Children {
+		child.SetNames()
+	}
+	for _, child := range node.Declarations {
+		child.SetNames()
+	}
 }
 
 func (node *Node) SetNames() {
@@ -43,7 +58,7 @@ const (
 	TypePrintStatement
 	TypeOctothorpeStatement
 	TypeAssignmentStatement
-	TypeStructStatement
+	TypeStructDeclaration
 	TypeStructField
 	TypeConstructor
 	TypeStructArgument
@@ -79,7 +94,7 @@ func (sType NodeType) name() string {
 		return "Assignment"
 	case TypeOctothorpeStatement:
 		return "Octothorpe"
-	case TypeStructStatement:
+	case TypeStructDeclaration:
 		return "StructDeclaration"
 	case TypeStructField:
 		return "StructField"
