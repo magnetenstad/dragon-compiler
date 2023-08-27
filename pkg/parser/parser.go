@@ -144,11 +144,8 @@ func (parser *Parser) matchStatement(parent *ast.Node) *ast.Node {
 
 	case lexer.TypeStruct:
 		parser.root.Declarations = append(parser.root.Declarations, parser.matchStructDeclaration(&node))
-		fmt.Println(parser.root.Declarations)
 
 	default:
-		fmt.Println("uoh")
-		fmt.Println(parser.lookahead.Type)
 		parser.panic("matchStatement", "statement")
 	}
 
