@@ -102,19 +102,8 @@ func (lexer *Lexer) peekNext() error {
 }
 
 func (lexer *Lexer) scan() (*Token, error) {
-	var err error = nil
-	for ; err == nil; err = lexer.peekNext() {
-		if lexer.peek == '\n' {
-			lexer.line += 1
-			continue
-		}
-		if lexer.peek == ' ' ||
-			lexer.peek == '\t' ||
-			lexer.peek == '\r' {
-			continue
-		}
-		break
-	}
+
+	err := lexer.scanWhiteSpace()
 
 	if err != nil {
 		return nil, err
@@ -129,90 +118,121 @@ func (lexer *Lexer) scan() (*Token, error) {
 	}
 
 	if lexer.peek == '"' {
-		var sb strings.Builder
-
-		lexer.peekNext()
-		for lexer.peek != '"' {
-			sb.WriteRune(lexer.peek)
-			if lexer.peekNext() != nil {
-				panic("unclosed string")
-			}
-		}
-		lexer.peekNext()
-
-		lexeme := sb.String()
-
-		token.Type = TypeLiteral
-		token.Lexeme = lexeme
-		return &token, nil
+		return lexer.scanStringLiteral(token)
 	}
 
 	if unicode.IsDigit(lexer.peek) {
-		value := 0
-
-		for unicode.IsDigit(lexer.peek) {
-			value = value*10 + (int(lexer.peek) - '0')
-			lexer.peekNext()
-		}
-
-		token.Type = TypeNumber
-		token.Value = value
-		return &token, nil
+		return lexer.scanNumber(token)
 	}
 
 	if unicode.IsLetter(lexer.peek) {
-		var sb strings.Builder
-
-		tokenType := TypeIdentifier
-		if unicode.IsUpper(lexer.peek) {
-			tokenType = TypeTypeHint
-		}
-
-		for unicode.IsLetter(lexer.peek) {
-			sb.WriteRune(lexer.peek)
-			lexer.peekNext()
-		}
-
-		lexeme := sb.String()
-		token.Type = TokenType(tokenType)
-		token.Lexeme = lexeme
-
-		existingToken, exists := lexer.Lexemes[lexeme]
-		if exists {
-			token.Type = existingToken.Type
-			token.Lexeme = existingToken.Lexeme
-			token.Value = existingToken.Value
-		}
-
-		lexer.reserve(token)
-
-		return &token, nil
+		return lexer.scanWord(token)
 	}
 
 	if isOperator(lexer.peek) {
-		// Copy paste of above
-		var sb strings.Builder
-
-		for isOperator(lexer.peek) {
-			sb.WriteRune(lexer.peek)
-			lexer.peekNext()
-		}
-
-		lexeme := sb.String()
-		token.Type = TypeOperator
-		token.Lexeme = lexeme
-		lexer.reserve(token)
-
-		return &token, nil
+		return lexer.scanOperator(token)
 	}
 
 	lexer.peek = ' '
 	return &token, nil
 }
 
+func (lexer *Lexer) scanWhiteSpace() error {
+	var err error = nil
+	for ; err == nil; err = lexer.peekNext() {
+		if lexer.peek == '\n' {
+			lexer.line += 1
+			continue
+		}
+		if lexer.peek == ' ' ||
+			lexer.peek == '\t' ||
+			lexer.peek == '\r' {
+			continue
+		}
+		break
+	}
+	return err
+}
+
+func (lexer *Lexer) scanStringLiteral(token Token) (*Token, error) {
+	var sb strings.Builder
+
+	lexer.peekNext()
+	for lexer.peek != '"' {
+		sb.WriteRune(lexer.peek)
+		if lexer.peekNext() != nil {
+			panic("unclosed string")
+		}
+	}
+	lexer.peekNext()
+
+	lexeme := sb.String()
+
+	token.Type = TypeLiteral
+	token.Lexeme = lexeme
+	return &token, nil
+}
+
+func (lexer *Lexer) scanNumber(token Token) (*Token, error) {
+	value := 0
+
+	for unicode.IsDigit(lexer.peek) {
+		value = value*10 + (int(lexer.peek) - '0')
+		lexer.peekNext()
+	}
+
+	token.Type = TypeNumber
+	token.Value = value
+	return &token, nil
+}
+
+func (lexer *Lexer) scanWord(token Token) (*Token, error) {
+	var sb strings.Builder
+
+	tokenType := TypeIdentifier
+	if unicode.IsUpper(lexer.peek) {
+		tokenType = TypeTypeHint
+	}
+
+	for unicode.IsLetter(lexer.peek) {
+		sb.WriteRune(lexer.peek)
+		lexer.peekNext()
+	}
+
+	lexeme := sb.String()
+	token.Type = TokenType(tokenType)
+	token.Lexeme = lexeme
+
+	existingToken, exists := lexer.Lexemes[lexeme]
+	if exists {
+		token.Type = existingToken.Type
+		token.Lexeme = existingToken.Lexeme
+		token.Value = existingToken.Value
+	}
+
+	lexer.reserve(token)
+
+	return &token, nil
+}
+
+func (lexer *Lexer) scanOperator(token Token) (*Token, error) {
+	var sb strings.Builder
+
+	for isOperator(lexer.peek) {
+		sb.WriteRune(lexer.peek)
+		lexer.peekNext()
+	}
+
+	lexeme := sb.String()
+	token.Type = TypeOperator
+	token.Lexeme = lexeme
+	lexer.reserve(token)
+
+	return &token, nil
+}
+
 func (lexer *Lexer) ScanAll() []Token {
 	var tokens []Token
-
 	for {
 		token, err := lexer.scan()
 		if err != nil {
@@ -220,7 +240,6 @@ func (lexer *Lexer) ScanAll() []Token {
 		}
 		tokens = append(tokens, *token)
 	}
-
 	return tokens
 }
 
