@@ -1,49 +1,9 @@
 # dragon-compiler
 
-## Lexical Analysis
-
-## Tokens
+## Examples
 
 ```txt
 
-literal     -> ".*"
-number      -> [0-9]+
-identifier  -> [a-zA-Z]+
-operator    -> = | < | > | * | / | + | - | <= | >= | == | !=
-
-print       -> print
 ```
 
-## Syntax Analysis
-
-### BNF Grammar
-
-```txt
-
-program     -> blocks
-
-blocks      ->
-    block blocks
-  | block
-
-block       ->
-  { blocks }
-  { statements }
-
-statements  ->
-    statement statements
-  | statement
-
-statement   ->
-    identifier = expression
-  | print expression
-  | # expression
-  | struct block
-
-expression  ->
-    ( expression operator expression )
-  | number
-  | literal
-  | identifier
-
-```
+More examples can be found in `examples/`
