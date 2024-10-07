@@ -15,12 +15,14 @@ house = House(
     street "Søndre Berg"
     streetNumber 8
     color Color(
-        r 255
+        r 254 + 1
     )
 )
 
 {
-    require house.streetNumber > 0
+    skip_if house.streetNumber < 0
 
     print house.street
+
+    skip
 }

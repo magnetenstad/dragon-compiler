@@ -56,12 +56,13 @@ const (
 	TypeStatement
 	TypeExpression
 	TypePrintStatement
-	TypeOctothorpeStatement
 	TypeAssignmentStatement
 	TypeStructDeclaration
 	TypeStructField
 	TypeConstructor
 	TypeStructArgument
+	TypeSkipStatement
+	TypeSkipIfStatement
 )
 
 func (sType NodeType) name() string {
@@ -92,8 +93,6 @@ func (sType NodeType) name() string {
 		return "Print"
 	case TypeAssignmentStatement:
 		return "Assignment"
-	case TypeOctothorpeStatement:
-		return "Octothorpe"
 	case TypeStructDeclaration:
 		return "StructDeclaration"
 	case TypeStructField:

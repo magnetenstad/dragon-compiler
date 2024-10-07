@@ -122,8 +122,11 @@ func (parser *Parser) matchStatement(parent *ast.Node) *ast.Node {
 	case lexer.TypeIdentifier:
 		node.ParseAsChild(parser.matchAssignmentStatement)
 
-	case lexer.TypeRequire:
-		node.ParseAsChild(parser.matchOctothorpeStatement)
+	case lexer.TypeSkip:
+		node.ParseAsChild(parser.matchSkipStatement)
+
+	case lexer.TypeSkipIf:
+		node.ParseAsChild(parser.matchSkipIfStatement)
 
 	case lexer.TypeStruct:
 		parser.root.Declarations = append(parser.root.Declarations, parser.matchStructDeclaration(&node))
@@ -156,13 +159,18 @@ func (parser *Parser) matchAssignmentStatement(parent *ast.Node) *ast.Node {
 	return &node
 }
 
-func (parser *Parser) matchOctothorpeStatement(parent *ast.Node) *ast.Node {
-	node := ast.Node{Type: ast.TypeOctothorpeStatement}
-	parser.match(lexer.TypeRequire)
-	node.ParseAsChild(parser.matchExpression)
+func (parser *Parser) matchSkipStatement(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeSkipStatement}
+	parser.match(lexer.TypeSkip)
 	return &node
 }
 
+func (parser *Parser) matchSkipIfStatement(parent *ast.Node) *ast.Node {
+	node := ast.Node{Type: ast.TypeSkipIfStatement}
+	parser.match(lexer.TypeSkipIf)
+	node.ParseAsChild(parser.matchExpression)
+	return &node
+}
 func (parser *Parser) matchStructDeclaration(parent *ast.Node) *ast.Node {
 	node := ast.Node{Type: ast.TypeStructDeclaration}
 

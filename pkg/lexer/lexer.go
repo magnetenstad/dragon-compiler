@@ -16,10 +16,11 @@ const (
 	TypeBoolean
 	TypeOperator
 	TypePrint
-	TypeRequire
 	TypeNot
 	TypeStruct
 	TypeTypeHint
+	TypeSkip
+	TypeSkipIf
 )
 
 func (e TokenType) String() string {
@@ -36,8 +37,6 @@ func (e TokenType) String() string {
 		return "TypeOperator"
 	case TypePrint:
 		return "TypePrint"
-	case TypeRequire:
-		return "TypeRequire"
 	case TypeNot:
 		return "TypeNot"
 	case TypeStruct:
@@ -77,9 +76,10 @@ func NewLexer(reader io.RuneReader) Lexer {
 	lexer.reserve(Token{Type: TypeBoolean, Value: 1, Lexeme: "true"})
 	lexer.reserve(Token{Type: TypeBoolean, Value: 0, Lexeme: "false"})
 	lexer.reserve(Token{Type: TypePrint, Lexeme: "print"})
-	lexer.reserve(Token{Type: TypeRequire, Lexeme: "require"})
 	lexer.reserve(Token{Type: TypeNot, Lexeme: "!"})
 	lexer.reserve(Token{Type: TypeStruct, Lexeme: "struct"})
+	lexer.reserve(Token{Type: TypeSkip, Lexeme: "skip"})
+	lexer.reserve(Token{Type: TypeSkipIf, Lexeme: "skip_if"})
 	lexer.reserve(Token{Type: TypeTypeHint, Lexeme: "Int"})
 	lexer.reserve(Token{Type: TypeTypeHint, Lexeme: "Float"})
 	lexer.reserve(Token{Type: TypeTypeHint, Lexeme: "String"})
@@ -190,11 +190,11 @@ func (lexer *Lexer) scanWord(token Token) (*Token, error) {
 	var sb strings.Builder
 
 	tokenType := TypeIdentifier
-	if unicode.IsUpper(lexer.peek) {
+	if unicode.IsUpper(lexer.peek) { // TODO
 		tokenType = TypeTypeHint
 	}
 
-	for unicode.IsLetter(lexer.peek) {
+	for unicode.IsLetter(lexer.peek) || lexer.peek == '_' {
 		sb.WriteRune(lexer.peek)
 		lexer.peekNext()
 	}

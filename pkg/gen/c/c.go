@@ -90,11 +90,15 @@ func generate(node *ast.Node, ctx *Context) {
 		generate(node.Children[1], ctx)
 		ctx.sb.Append(";\n")
 
-	case ast.TypeOctothorpeStatement:
+	case ast.TypeSkipStatement:
 		writeTabs(ctx.sb, ctx.tabs)
-		ctx.sb.Append("if (!(")
+		ctx.sb.Append(fmt.Sprintf("goto __EndBlock_%d__;\n", ctx.block))
+
+	case ast.TypeSkipIfStatement:
+		writeTabs(ctx.sb, ctx.tabs)
+		ctx.sb.Append("if (")
 		generate(node.Children[0], ctx)
-		ctx.sb.Append(fmt.Sprintf(")) goto __EndBlock_%d__;\n", ctx.block))
+		ctx.sb.Append(fmt.Sprintf(") goto __EndBlock_%d__;\n", ctx.block))
 
 	case ast.TypeExpression:
 		generate(node.Children[0], ctx)
