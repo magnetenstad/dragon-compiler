@@ -1,11 +1,11 @@
 struct Color {
-    Int r
-    Int g
-    Int b
+    r Int
+    g Int
+    b Int
 }
 
 struct House {
-    String street
-    Int streetNumber
-    Color color
+    street String  
+    streetNumber Int     
+    color Color   
 }

@@ -1,20 +1,20 @@
 
 struct Color {
-    Int r
-    Int g
-    Int b
+    r Int
+    g Int
+    b Int
 }
 
 struct House {
-    String street
-    Int streetNumber
-    Color color
+    street String
+    streetNumber Int 
+    color Color 
 }
 
-house = House(
+house = House (
     street "Søndre Berg"
     streetNumber 8
-    color Color(
+    color Color (
         r 0 
         g 0 
         b 0

@@ -1,14 +1,14 @@
 
 struct Color {
-    Int r = 100
-    Int g = 50
-    Int b
+    r Int = 100
+    g Int = 50
+    b Int
 }
 
 struct House {
-    String street = "Unknown street"
-    Int streetNumber
-    Color color
+    street String = "Unknown street"
+    streetNumber Int
+    color Color
 }
 
 house = House(

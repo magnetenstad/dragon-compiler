@@ -174,8 +174,8 @@ func (parser *Parser) matchStructDeclaration(parent *ast.Node) *ast.Node {
 
 	for parser.lookahead.Type != '}' {
 		fieldNode := ast.Node{Type: ast.TypeStructField}
-		typeToken := parser.match(lexer.TypeTypeHint)
 		idToken := parser.match(lexer.TypeIdentifier)
+		typeToken := parser.match(lexer.TypeTypeHint)
 		node.AddChild(&fieldNode)
 		fieldNode.Lexeme = idToken.Lexeme
 		fieldNode.TypeHint = typeToken.Lexeme
