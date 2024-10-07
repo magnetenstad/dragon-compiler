@@ -18,3 +18,10 @@ house = House(
         r 254 + 1
     )
 )
+
+{
+    skip_if house.streetNumber < 0
+
+    print house.street
+    print house.streetNumber
+}

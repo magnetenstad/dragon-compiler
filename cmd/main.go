@@ -19,6 +19,7 @@ func main() {
 	compile("examples/struct")
 	compile("examples/constructor")
 	compile("examples/default_values")
+	compile("examples/readme")
 }
 
 func compile(filename string) {
