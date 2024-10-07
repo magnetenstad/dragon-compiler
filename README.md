@@ -2,8 +2,33 @@
 
 ## Examples
 
-```txt
+```cpp
+struct Color {
+    r Int = 100
+    g Int = 50
+    b Int
+}
 
+struct House {
+    street String = "Unknown street"
+    streetNumber Int
+    color Color
+}
+
+house = House(
+    street "Kongens Gate"
+    streetNumber 12
+    color Color(
+        r 254 + 1
+    )
+)
+
+{
+    skip_if house.streetNumber < 0
+
+    print house.street
+    print house.streetNumber
+}
 ```
 
 More examples can be found in `examples/`

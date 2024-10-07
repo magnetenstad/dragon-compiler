@@ -12,8 +12,8 @@ struct House {
 }
 
 house = House(
-    street "Søndre Berg"
-    streetNumber 8
+    street "Kongens Gate"
+    streetNumber 12
     color Color(
         r 254 + 1
     )
